@@ -26,6 +26,8 @@ class Trainer:
             N_classes_class=3,
             loss_function_seg=DiceCEsoft(),
             loss_function_class=nn.CrossEntropyLoss(),
+            binary_seg_weight=1.0,
+            multi_seg_weight=1.0,
             input_type_class="multi",
             eval_num=1
     ):
@@ -50,6 +52,8 @@ class Trainer:
             N_classes_class: number of diagnoses for classifier (default 3)
             loss_function_seg: segmentation loss function (default DiceCE)
             loss_function_class: classification loss function (default CE)
+            binary_seg_weight: weight for binary segmentation loss 
+            multi_seg_weight: weight for multi-class segmentation loss
             input_type_class: str defining expected input to classifier. One of:
                             "multi" = use multi-class segmentation labels,
                             "binary" = use binary segmentation labels (add multi-class preds)
@@ -73,6 +77,8 @@ class Trainer:
         self.N_classes_class = N_classes_class
         self.loss_function_class = loss_function_class
         self.loss_function_seg = loss_function_seg
+        self.binary_seg_weight = binary_seg_weight
+        self.multi_seg_weight = multi_seg_weight
 
         exp_names = ["segment", "classify", "joint", "LP"]
         in_class_names = ["multi", "binary", "img"]
@@ -92,13 +98,30 @@ class Trainer:
 
         Args:
             softmax_preds: multi-class softmax network segmentation predictions (shape BNH[WD])
-            Output: torch tensor with original image shape and two channels, background and foreground
+        Returns: torch tensor with original image shape and two channels, background and foreground
         """
 
         added_preds = torch.sum(softmax_preds[:, 1:], dim=1)
         added_preds = torch.cat([softmax_preds[:, 0, ...].unsqueeze(1), added_preds.unsqueeze(1)], dim=1)
 
         return added_preds
+
+    def compute_seg_loss(self, logit_map, mask, LP):
+        """Computes total segmentation loss combining multi-class propagated labels and binary
+        Args:
+            mask: binary mask torch tensor
+            LP: multi-class vessel mask torch tensor
+        Returns: total segmentation loss, binary loss, multi-class loss
+        """
+        pred = torch.softmax(logit_map, dim=1)
+        multi_loss = self.loss_function_seg(pred, LP)
+        binary_loss = self.loss_function_seg(self.add_softmax_labels(pred), mask)
+        total_loss_seg = self.binary_seg_weight*binary_loss + self.multi_seg_weight*multi_loss
+
+        return total_loss_seg, multi_loss, binary_loss
+
+
+
 
     # POTENTIALLY TO DELETE
     def set_train(self):
@@ -132,7 +155,7 @@ class Trainer:
         """ Generates input tensor to classifier based on input_type_class parameter
             Args:
                 img: original image tensor - default
-                pred_seg: softmax segmentation predictions (multi-class)
+                segmenter: segmentation network
             Returns torch tensor to be used as input to classifier
         """
         if self.input_type_class == "img" or not segmenter:
@@ -144,6 +167,50 @@ class Trainer:
             class_in = self.add_softmax_labels(class_in)
 
         return class_in
+
+    def train_segmenter(self):
+        self.segmenter.train()
+
+        epoch_iterator = tqdm(
+            self.train_loader, desc="Training (X / X Steps) (loss=X.X)", dynamic_ncols=True
+        )
+
+        for step, batch in enumerate(epoch_iterator):
+            step += 1
+            img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
+            logit_map = self.segmenter(img)
+
+
+
+            loss_train = self.loss_function_class(logit_map, diagnosis)
+            loss_train.backward()
+
+            if lr_scheduler is not None:
+                metrics_class['lr'].append(self.optimizer.param_groups[0]['lr'])
+
+            metrics_class['train_loss'].append(loss_train.item())
+
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+            epoch_iterator.set_description(
+                "Training (%d / %d Steps) (loss=%2.5f)" % (iteration, self.max_iterations, loss_train)
+            )
+
+            iteration += 1
+
+            if lr_scheduler is not None:
+                lr_scheduler.step()
+
+            losses_train.append(metrics_class)
+            utils.plot_losses_train(self.res_dir, losses_train, 'fig_losses_train_')
+
+    def get_loss_func(self):
+        if self.experiment_type == "segment":
+            loss_multi_seg = self.loss_function_seg()
+            loss_bin_seg =
+            total_loss = self.loss_function_seg()
+            # RETURN LOSS BASED ON WEIGHTINGS FOR EACH PART (BINARY AND MULTI)
+        elif self.experiment_type == "classify":
 
 
 
@@ -178,6 +245,7 @@ class TrainNet(Trainer):
             step += 1
             input_net, label = self.get_input_net(batch, segmenter=self.segmenter)
             logit_map = model(input_net)
+
 
             # HERE: FUNCTION TO GET APPROPRIATE LOSS FUNCTION AND LABEL FOR EACH EXPERIMENT
             # RETURNS TOTAL LOSS, AND BACKPROP HAPPENS
