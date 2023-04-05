@@ -120,37 +120,6 @@ class Trainer:
 
         return total_loss_seg, multi_loss, binary_loss
 
-
-
-
-    # POTENTIALLY TO DELETE
-    def set_train(self):
-        if self.experiment_type == "segment":
-            self.segmenter.train()
-        elif self.experiment_type == "classify":
-            self.classifier.train()
-        elif self.experiment_type == "joint":
-            self.segmenter.train()
-            self.classifier.train()
-
-    def get_input_net(self, batch, segmenter=None):
-        img, mask, LP, diagnosis = (
-            batch["image"].cuda(), batch["mask"].cuda(), batch["LP"].cuda(), batch["label"].cuda())
-
-        if self.experiment_type == "segment":
-            input_net = img
-            label = [LP, mask]
-
-        elif self.experiment_type == "classify":
-            input_net = self.get_input_classifier(img=img, segmenter=segmenter)
-            label = diagnosis
-
-        elif self.experiment_type == "joint":
-            input_net = self.get_input_classifier(img=img, segmenter=segmenter)
-            label = [LP, mask, diagnosis]
-
-        return input_net, label
-
     def get_input_classifier(self, img=None, segmenter=None):
         """ Generates input tensor to classifier based on input_type_class parameter
             Args:
