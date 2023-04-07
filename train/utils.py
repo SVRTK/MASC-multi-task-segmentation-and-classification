@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+
 # To make cuda tensor
 def cuda(xs):
     if torch.cuda.is_available():
@@ -11,8 +12,36 @@ def cuda(xs):
 
 
 # To save the checkpoint
-def save_checkpoint(state, save_path):
-    torch.save(state, save_path)
+def save_checkpoint(ckpt_name,
+                    ckpt_dir,
+                    model,
+                    optimizer,
+                    iteration=None,
+                    epoch=None,
+                    losses_train=None,
+                    losses_valid=None,
+                    losses_train_joint=None,
+                    losses_valid_joint=None,
+                    lr_scheduler=None,
+                    binary_seg_weight=None,
+                    multi_seg_weight=None,
+                    best_valid_loss=None,
+                    best_metric_valid=None,
+                    ):
+
+    model = model.state_dict()
+    optimizer = optimizer.state_dict()
+    if lr_scheduler:
+        lr_scheduler = lr_scheduler.state_dict()
+
+    ckpt_dict = {'model': model, 'optimizer': optimizer, 'iteration': iteration,
+                 'epoch': epoch, 'losses_train': losses_train, 'losses_valid': losses_valid,
+                 'losses_train_joint': losses_train_joint, 'losses_valid_joint': losses_valid_joint,
+                 'lr_scheduler': lr_scheduler, 'binary_seg_weight': binary_seg_weight,
+                 'multi_seg_weight': multi_seg_weight,'best_valid_loss': best_valid_loss,
+                 'best_metric_valid': best_metric_valid}
+
+    torch.save(ckpt_dict, '{}{}.ckpt'.format(ckpt_dir, ckpt_name))
 
 
 # To load the checkpoint
