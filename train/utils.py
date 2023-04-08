@@ -2,6 +2,21 @@ import torch
 import numpy as np
 
 
+def add_softmax_labels(softmax_preds):
+    """ Returns added multi-class foreground softmax predictions (background excluded)
+        Assumes background in first channel
+
+    Args:
+        softmax_preds: multi-class softmax network segmentation predictions (shape BNH[WD])
+    Returns: torch tensor with original image shape and two channels, background and foreground
+    """
+
+    added_preds = torch.sum(softmax_preds[:, 1:], dim=1)
+    added_preds = torch.cat([softmax_preds[:, 0, ...].unsqueeze(1), added_preds.unsqueeze(1)], dim=1)
+
+    return added_preds
+
+
 # To make cuda tensor
 def cuda(xs):
     if torch.cuda.is_available():
