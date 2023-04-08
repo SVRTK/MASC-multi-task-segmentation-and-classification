@@ -204,6 +204,9 @@ class Trainer:
                     )
                 )
 
+                best_metrics_valid = mean_accuracy
+                best_valid_loss = mean_valid_loss 
+
                 utils.save_checkpoint(ckpt_name='best_metric_classifier',
                                       ckpt_dir=self.ckpt_dir,
                                       model=classifier,
@@ -218,7 +221,7 @@ class Trainer:
                                       )
             else:
                 print(
-                    "Segmenter Model not best ! Current Best Accuracy: {} "
+                    "Classifier Model not best ! Current Best Accuracy: {} "
                     "Current Avg. Accuracy: {}, current best loss: {}, current loss: {}".format(
                         best_metrics_valid, mean_accuracy, best_valid_loss, mean_valid_loss
                     )
@@ -401,7 +404,7 @@ class Trainer:
     def valid_segmenter(self,
                         segmenter,
                         metrics_valid,
-                        losses_valid=None, ):
+                        losses_valid=None):
 
         segmenter.eval()
 
@@ -440,7 +443,6 @@ class Trainer:
             )
 
             metrics_valid['dice_valid'].append(dice)
-            metrics_valid['total_valid_loss'].append(total_loss.item())
             metrics_valid['multi_valid_loss'].append(multi_loss.item())
             metrics_valid['binary_valid_loss'].append(binary_loss.item())
 
@@ -455,94 +457,111 @@ class Trainer:
         return losses_valid, mean_seg_multi_loss, mean_dice_val
 
     def train_joint(self,
-                    classifier,
-                    segmenter,
-                    iteration,
-                    epoch,
-                    metrics_train,
-                    metrics_valid=None,
-                    lr_scheduler_seg=None,
-                    lr_scheduler_class=None,
-                    binary_seg_weight=1,
-                    multi_seg_weight=1,
-                    multi_task_weight=1,
-                    best_metrics_valid_seg=0.0,
-                    best_valid_loss_seg=1000,
-                    best_metrics_valid_class=0.0,
-                    best_valid_loss_class=1000,
-                    losses_train=None,
-                    losses_valid=None,
-                    ):
+                        classifier,
+                        segmenter,
+                        iteration,
+                        epoch,
+                        metrics_train,
+                        metrics_valid=None,
+                        lr_scheduler_seg=None,
+                        lr_scheduler_class=None,
+                        binary_seg_weight=1,
+                        multi_seg_weight=1,
+                        multi_task_weight=1,
+                        best_metrics_valid_seg=0.0,
+                        best_metrics_valid_class=0.0,
+                        losses_train=None,
+                        losses_valid=None,
+                        ):
 
-        segmenter.train()
+            segmenter.train()
+            classifier.train()
 
-        epoch_iterator = tqdm(
-            self.train_loader, desc="Training (X / X Steps) (loss=X.X)", dynamic_ncols=True
-        )
-
-        for batch in epoch_iterator:
-            img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
-            logit_map = segmenter(img)
-
-            total_loss, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
-                                                                        multi_seg_weight=multi_seg_weight,
-                                                                        binary_seg_weight=binary_seg_weight)
-            total_loss.backward()
-
-            metrics_train['total_train_loss'].append(total_loss.item())
-            metrics_train['multi_train_loss'].append(multi_loss.item())
-            metrics_train['binary_train_loss'].append(binary_loss.item())
-
-            self.optimizer_seg.step()
-            self.optimizer_seg.zero_grad()
-            epoch_iterator.set_description(
-                "Training (%d / %d Steps) (loss=%2.5f)" % (iteration, self.max_iterations, total_loss)
+            epoch_iterator = tqdm(
+                self.train_loader, desc="Training (X / X Steps) (loss=X.X)", dynamic_ncols=True
             )
 
-            iteration += 1
+            for batch in epoch_iterator:
+                img, LP, mask, label = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"].cuda())
 
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+                # Pass through segmenter
+                logit_map = segmenter(img)
+                total_loss_seg, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
+                                                                            multi_seg_weight=multi_seg_weight,
+                                                                            binary_seg_weight=binary_seg_weight)
 
-        losses_train.append(metrics_train)
-        utils.plot_losses_train(self.res_dir, losses_train, 'losses_train_seg_')
+                # Pass through classifier
+                class_in = torch.softmax(logit_map, dim=1)
+                pred = classifier(class_in)
+                loss_class = self.loss_function_class(pred, label)
 
-        # >>>>>>>>>>>>>> Validate <<<<<<<<<<<<<<< #
-        if (
-                epoch % self.eval_num == 0 and epoch != 0
-        ) or iteration == self.max_iterations:
+                # Compute total loss and backprop
+                total_loss = total_loss_seg + multi_task_weight*loss_class
+                total_loss.backward()
 
-            losses_valid, mean_multi_loss, \
-            mean_dice_val = self.valid_segmenter(segmenter,
-                                                 metrics_valid_seg,
-                                                 losses_valid_seg=losses_valid
-                                                 )
+                self.optimizer_seg.step()
+                self.optimizer_class.step()
+                self.optimizer_class.zero_grad()
+                self.optimizer_seg.zero_grad()
 
-            # Checkpoint network
-            utils.save_checkpoint(ckpt_name='latest_segmenter',
-                                  ckpt_dir=self.ckpt_dir,
-                                  model=segmenter,
-                                  optimizer=self.optimizer_seg,
-                                  iteration=iteration,
-                                  epoch=epoch,
-                                  losses_train=losses_train,
-                                  losses_valid=losses_valid,
-                                  lr_scheduler=lr_scheduler,
-                                  binary_seg_weight=binary_seg_weight,
-                                  multi_seg_weight=multi_seg_weight,
-                                  best_valid_loss=best_valid_loss,
-                                  best_metric_valid=best_metrics_valid
-                                  )
-            if mean_dice_val > best_metrics_valid or mean_multi_loss < best_valid_loss:
-                print(
-                    "Segmenter Model Was Saved ! Current Best Dice: {} "
-                    "Current Avg. Dice: {}, current best multi loss: {}, current multi loss: {}".format(
-                        best_metrics_valid, mean_dice_val, best_valid_loss, mean_multi_loss
-                    )
+                metrics_train['total_train_loss_seg'].append(total_loss_seg.item())
+                metrics_train['multi_train_loss_seg'].append(multi_loss.item())
+                metrics_train['binary_train_loss_seg'].append(binary_loss.item())
+                metrics_train['train_loss_class'].append(loss_class.item())
+                metrics_train['total_loss'].append(total_loss.item())
+
+                epoch_iterator.set_description(
+                    "Training (%d / %d Steps) (loss=%2.5f)" % (iteration, self.max_iterations, total_loss)
                 )
 
-                if mean_dice_val > best_metrics_valid:
-                    best_metrics_valid = mean_dice_val
+                iteration += 1
+
+            # Step through LR schedulers
+            if lr_scheduler_seg is not None:
+                lr_scheduler_seg.step()
+
+            if lr_scheduler_class is not None:
+                lr_scheduler_class.step()
+
+            losses_train.append(metrics_train)
+            utils.plot_losses_train(self.res_dir, losses_train, 'losses_train_seg_')
+
+            # >>>>>>>>>>>>>> Validate <<<<<<<<<<<<<<< #
+            if (
+                    epoch % self.eval_num == 0 and epoch != 0
+            ) or iteration == self.max_iterations:
+                losses_valid, mean_dice_val, mean_accuracy = self.valid_joint(
+                                                                        segmenter,
+                                                                        classifier,
+                                                                        metrics_valid,
+                                                                        binary_seg_weight=binary_seg_weight,
+                                                                        multi_seg_weight=multi_seg_weight,
+                                                                        multi_task_weight=multi_task_weight,
+                                                                        losses_valid=losses_valid,
+                                                                        )
+
+                # Checkpoint networks
+                utils.save_checkpoint(ckpt_name='latest_segmenter',
+                                      ckpt_dir=self.ckpt_dir,
+                                      model=segmenter,
+                                      optimizer=self.optimizer_seg,
+                                      iteration=iteration,
+                                      epoch=epoch,
+                                      losses_train=losses_train,
+                                      losses_valid=losses_valid,
+                                      lr_scheduler=lr_scheduler_seg,
+                                      binary_seg_weight=binary_seg_weight,
+                                      multi_seg_weight=multi_seg_weight,
+                                      best_metric_valid=best_metrics_valid_seg
+                                      )
+                if mean_dice_val > best_metrics_valid_seg:
+                    print(
+                        "Segmenter Model Was Saved ! Current Best Dice: {} Current Avg. Dice: {}".format(
+                            best_metrics_valid_seg, mean_dice_val
+                        )
+                    )
+
+                    best_metrics_valid_seg = mean_dice_val
 
                     utils.save_checkpoint(ckpt_name='best_metric_segmenter',
                                           ckpt_dir=self.ckpt_dir,
@@ -552,40 +571,134 @@ class Trainer:
                                           epoch=epoch,
                                           losses_train=losses_train,
                                           losses_valid=losses_valid,
-                                          lr_scheduler=lr_scheduler,
+                                          lr_scheduler=lr_scheduler_seg,
                                           binary_seg_weight=binary_seg_weight,
                                           multi_seg_weight=multi_seg_weight,
-                                          best_valid_loss=best_valid_loss,
-                                          best_metric_valid=best_metrics_valid
+                                          best_metric_valid=best_metrics_valid_seg
                                           )
 
-                if mean_multi_loss < best_valid_loss:
-                    best_valid_loss = mean_multi_loss
+                else:
+                    print(
+                        "Segmenter Model Not Best ! Current Best Dice: {} Current Avg. Dice: {}".format(
+                            best_metrics_valid_seg, mean_dice_val
+                        )
+                    )
 
-                    utils.save_checkpoint(ckpt_name='best_valid_loss_segmenter',
+                if mean_accuracy > best_metrics_valid_class:
+                    print(
+                        "Classifier Model Was Saved ! Current Best Accuracy: {} "
+                        "Current Avg. Accuracy: {}".format(
+                            best_metrics_valid_class, mean_accuracy
+                        )
+                    )
+
+                    best_metrics_valid_class = mean_accuracy
+
+                    utils.save_checkpoint(ckpt_name='best_metric_classifier',
                                           ckpt_dir=self.ckpt_dir,
-                                          model=segmenter,
-                                          optimizer=self.optimizer_seg,
+                                          model=classifier,
+                                          optimizer=self.optimizer_class,
                                           iteration=iteration,
                                           epoch=epoch,
                                           losses_train=losses_train,
                                           losses_valid=losses_valid,
-                                          lr_scheduler=lr_scheduler,
-                                          binary_seg_weight=binary_seg_weight,
-                                          multi_seg_weight=multi_seg_weight,
-                                          best_valid_loss=best_valid_loss,
-                                          best_metric_valid=best_metrics_valid
+                                          lr_scheduler=lr_scheduler_class,
+                                          best_metric_valid=best_metrics_valid_class
                                           )
-
-            else:
-                print(
-                    "Segmenter Model not best ! Current Best Dice: {} "
-                    "Current Avg. Dice: {}, current best multi loss: {}, current multi loss: {}".format(
-                        best_metrics_valid, mean_dice_val, best_valid_loss, mean_multi_loss
+                else:
+                    print(
+                        "Classifier Model not best ! Current Best Accuracy: {} "
+                        "Current Avg. Accuracy: {}".format(
+                            best_metrics_valid_class, mean_accuracy
+                        )
                     )
-                )
 
-        return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss, lr_scheduler
-        
+            return iteration, losses_train, losses_valid, \
+                   best_metrics_valid_class, best_metrics_valid_seg, \
+                   lr_scheduler_seg, lr_scheduler_class
+
+    def valid_joint(self,
+                    segmenter,
+                    classifier,
+                    metrics_valid,
+                    binary_seg_weight=1,
+                    multi_seg_weight=1,
+                    multi_task_weight=1,
+                    losses_valid=None,
+                    ):
+
+        segmenter.eval()
+        classifier.eval()
+
+        epoch_iterator_val = tqdm(
+            self.val_loader, desc="Validate (X / X Steps) (loss=X.X)", dynamic_ncols=True
+        )
+
+        post_label = transforms.AsDiscrete(to_onehot=2)
+        dice_metric = transforms.DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+        dice_vals = list()
+        num_correct = 0.0
+        metric_count = 0
+
+        for batch in epoch_iterator_val:
+            img, LP, mask, label = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"])
+
+            with torch.no_grad():
+
+                # Pass through segmenter
+                logit_map = segmenter(img)
+                total_loss_seg, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
+                                                                                multi_seg_weight=multi_seg_weight,
+                                                                                binary_seg_weight=binary_seg_weight)
+
+                # Pass through classifier
+                class_in = torch.softmax(logit_map, dim=1)
+                pred = classifier(class_in)
+                loss_class = self.loss_function_class(pred, label)
+
+                total_loss = total_loss_seg + multi_task_weight * loss_class
+
+                # Compute classifier metrics
+                value = torch.eq(pred.argmax(dim=1), label)
+                metric_count += len(value)
+                num_correct += value.sum().item()
+
+            # Compute segmentation metrics
+            binary_out = self.add_softmax_labels(torch.softmax(logit_map, dim=1))
+            val_labels_list = transforms.decollate_batch(mask)
+            val_labels_convert = [
+                post_label(val_label_tensor) for val_label_tensor in val_labels_list
+            ]
+            val_outputs_list = transforms.decollate_batch(binary_out)
+            val_output_convert = [
+                post_label(torch.argmax(val_pred_tensor, dim=0).unsqueeze(0))
+                for val_pred_tensor in val_outputs_list
+            ]
+
+            dice_metric(y_pred=val_output_convert, y=val_labels_convert)
+            dice = dice_metric.aggregate().item()
+            dice_vals.append(dice)
+            epoch_iterator_val.set_description(
+                "Validate (dice=%2.5f)" % (dice)
+            )
+
+            metrics_valid['dice_valid'].append(dice)
+            metrics_valid['binary_valid_loss'].append(binary_loss)
+            metrics_valid['multi_valid_loss'].append(multi_loss)
+            metrics_valid['total_valid_loss'].append(total_loss.item())
+
+        dice_metric.reset()
+
+        # Computing accuracy
+        accuracy = num_correct / metric_count
+        metrics_valid['accuracy'].append(accuracy)
+
+        losses_valid.append(metrics_valid)
+        mean_dice_val = np.mean(dice_vals)
+        losses_valid.append(metrics_valid)
+
+        utils.plot_losses_train(self.res_dir, losses_valid, 'metrics_valid_joint')
+
+        return losses_valid, mean_dice_val, accuracy
 
 
