@@ -160,6 +160,12 @@ class Trainer:
 
 
 def get_in_channels_class(config):
+    """ Returns the number of input channels for a given classifier experiment
+        Args:
+            config: config dictionary containing training experiment parameters (dict)
+        Returns:
+            number of input classifier channels (int) 
+    """
     if config['input_type_class']=='vol':
         in_channels = 1
     else:
@@ -244,7 +250,7 @@ def save_checkpoint(ckpt_name,
                  'epoch': epoch, 'losses_train': losses_train, 'losses_valid': losses_valid,
                  'losses_train_joint': losses_train_joint, 'losses_valid_joint': losses_valid_joint,
                  'lr_scheduler': lr_scheduler, 'binary_seg_weight': binary_seg_weight,
-                 'multi_seg_weight': multi_seg_weight,'best_valid_loss': best_valid_loss,
+                 'multi_seg_weight': multi_seg_weight, 'best_valid_loss': best_valid_loss,
                  'best_metric_valid': best_metric_valid}
 
     torch.save(ckpt_dict, '{}{}.ckpt'.format(ckpt_dir, ckpt_name))
@@ -266,7 +272,17 @@ def load_checkpoint(ckpt_path, map_location=None):
     return ckpt
 
 
-def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer):
+def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None):
+    """ Checks if model has been previously checkpointed, and if so load model weights and losses
+        Args: 
+            ckpt_dir: directory where checkpoint is saved (str)
+            ckpt_name: name of the checkpoint file (str)
+            model: model to load weights onto (pytorch model)
+            optimizer: optimizer for loading state dict (pytorch model)
+            lr_scheduler: learning rate scheduler for loading state dict (pytorch learning rate scheduler)
+    :return: 
+    """
+
     # Loading pretrained model
     try:
         ckpt = load_checkpoint(ckpt_path='{}{}.ckpt'.format(ckpt_dir, ckpt_name))
@@ -274,17 +290,41 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer):
         optimizer.load_state_dict(ckpt['optimizer'])
         losses_train_init_class = ckpt['losses_train']
         losses_valid_init_class = ckpt['losses_valid']
+        best_metric = ckpt['best_metric']
+        loss_val_best = ckpt['best_loss']
         iteration = ckpt['iteration']
         epoch = ckpt['epoch']
+        if lr_scheduler:
+            lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
     except:
         print("Starting training from scratch")
         losses_train_init_class = []
         losses_valid_init_class = []
+        best_metric = 1e-5
+        loss_val_best = 1e5
         iteration = 0
         epoch = 0
 
-    return losses_train_init_class, losses_valid_init_class, iteration, epoch
+    return losses_train_init_class, losses_valid_init_class, best_metric, loss_val_best, iteration, epoch
 
+
+class LambdaLR():
+    """ Computes the LR decay rate
+    
+    """
+    def __init__(self, epochs, offset, decay_epoch):
+        """
+        Args: 
+            epochs: total number of epochs for training (int)
+            offset: number of epochs to offset current epoch with (int)
+            decay_epoch: final+1 LR decay multiplicative factor (int)
+        """
+        self.epochs = epochs
+        self.offset = offset
+        self.decay_epoch = decay_epoch
+
+    def step(self, epoch):
+        return 1.0 - max(0, epoch + self.offset - self.decay_epoch) / (self.epochs - self.decay_epoch)
 
 def plot_losses_train(res_dir, losses_train, title_plot):
     """ Plots and saves the training/validation losses as .svg & .eps files
