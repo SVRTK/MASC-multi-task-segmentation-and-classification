@@ -1,4 +1,4 @@
-import train
+from train import train
 from train import train_utils
 import os
 from monai.networks.nets import AttentionUnet, DenseNet121
@@ -39,15 +39,19 @@ config = {
     'dropout_seg': 0.2,
     'lr_seg': 1e-3,
     'weight_decay_seg': 1e-5,
+    'chann_segnet': (32, 64, 128, 256, 512),
+    'strides_segnet': (2, 2, 2, 2),
+    'ksize_segnet': 3,
+    'up_ksize_segnet': 3,
 
     # Data parameters
     'spatial_dims': 3,
     'N_diagnosis': 3,
     'N_seg_labels': 12
-    }
+}
+
 
 def train(config):
-
     # Make checkpoint and results dir
     if not os.path.isdir(config['ckpt_dir']):
         os.makedirs(config['ckpt_dir'])
@@ -62,13 +66,13 @@ def train(config):
         in_channels_class = train_utils.get_in_channels_class(config)
 
         classifier = train_utils.cuda(DenseNet121(spatial_dims=config['spatial_dims'],
-                                 in_channels=in_channels_class,
-                                 out_channels=config['N_diagnosis'],
-                                 dropout_prob=config['dropout_class']))
+                                                  in_channels=in_channels_class,
+                                                  out_channels=config['N_diagnosis'],
+                                                  dropout_prob=config['dropout_class']))
 
         optimizer_class = torch.optim.AdamW(classifier.parameters(),
-                                      lr=config['lr_class'],
-                                      weight_decay=config['weight_decay_class'])
+                                            lr=config['lr_class'],
+                                            weight_decay=config['weight_decay_class'])
 
         lr_scheduler_class = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer_class,
                                                                lr_lambda=train_utils.LambdaLR(
@@ -76,7 +80,7 @@ def train(config):
 
         # Check if model has been pretrained, and load weights and losses
         losses_train_init_class, losses_valid_init_class, \
-        best_metric_class, loss_val_best_class,\
+        best_metric_class, loss_val_best_class, \
         iteration_class, epoch_class = train_utils.try_load_ckpt(config['ckpt_dir'],
                                                                  config['ckpt_name_class'],
                                                                  classifier,
@@ -87,19 +91,19 @@ def train(config):
         segmenter = train_utils.cuda(AttentionUnet(spatial_dims=config['spatial_dims'],
                                                    in_channels=1,
                                                    out_channels=config['N_seg_labels'],
-                                                   channels=(32, 64, 128, 256, 512),
-                                                   strides=(2,2,2,2),
-                                                   kernel_size=3,
-                                                   up_kernel_size=3,
+                                                   channels=config['chann_segnet'],
+                                                   strides=config['strides_segnet'],
+                                                   kernel_size=config['ksize_segnet'],
+                                                   up_kernel_size=config['up_ksize_segnet'],
                                                    dropout=config['dropout_seg']))
 
         optimizer_seg = torch.optim.AdamW(segmenter.parameters(),
-                                      lr=config['lr_seg'],
-                                      weight_decay=config['weight_decay_seg'])
+                                          lr=config['lr_seg'],
+                                          weight_decay=config['weight_decay_seg'])
 
         lr_scheduler_seg = torch.optim.lr_scheduler.LambdaLR(optimizer=optimizer_seg,
-                                                               lr_lambda=train_utils.LambdaLR(
-                                                                   max_epochs, 0, 1).step)
+                                                             lr_lambda=train_utils.LambdaLR(
+                                                                 max_epochs, 0, 1).step)
 
         # Check if model has been pretrained, and load weights and losses
         losses_train_init_seg, losses_valid_init_seg, \
@@ -110,56 +114,39 @@ def train(config):
                                                              optimizer_seg,
                                                              lr_scheduler=lr_scheduler_seg)
 
-
     # Set up Trainer class
     trainer = train_utils.Trainer(
-                                    train_loader=None,
-                                    val_loader=None,
-                                    max_iterations=config['max_iterations'],
-                                    ckpt_dir=config['ckpt_dir'],
-                                    res_dir=config['res_dir'],
-                                    experiment_type=config['experiment_type'],
-                                    optimizer_seg=None,
-                                    optimizer_class=None,
-                                    lr_scheduler_seg=None,
-                                    lr_scheduler_class=None,
-                                    input_type_class=config['input_type_class'],
-                                    eval_num=config['eval_num']
-                                )
+        train_loader=None,
+        val_loader=None,
+        max_iterations=config['max_iterations'],
+        ckpt_dir=config['ckpt_dir'],
+        res_dir=config['res_dir'],
+        experiment_type=config['experiment_type'],
+        optimizer_seg=optimizer_seg,
+        optimizer_class=optimizer_class,
+        lr_scheduler_seg=lr_scheduler_seg,
+        lr_scheduler_class=lr_scheduler_class,
+        input_type_class=config['input_type_class'],
+        eval_num=config['eval_num']
+    )
 
-    """
     if config['training']:
-        while iteration < config['max_iterations']:
-
-
-            
-            iteration, losses_train_init, losses_valid_init, dice_val_best, loss_val_best, lr_scheduler = train_ae(
-                model,
-                loss_function,
-                optimizer,
-                iteration,
-                epoch,
-                train_loader_all,
-                val_loader,
-                loss_val_best,
-                dice_val_best,
-                args.max_iterations,
-                args.eval_num,
-                metrics_train,
-                metrics_valid,
-                ckpt_dir,
-                res_dir,
-                args.N_classes,
-                lr_scheduler=lr_scheduler,
-                losses_train_init=losses_train_init,
-                losses_valid_init=losses_valid_init,
-                input_type_class=args.input_type_class_AE,
-                use_condition=args.use_condition
-            )
-            
-
-                epoch += 1
-    """
+        # HERE THIS HAS TO BE ADAPTED FOR
+        train.RunTrain()(
+            iteration,
+            max_iteration,
+            epoch,
+            losses_train,
+            losses_valid,
+            segmenter=None,
+            best_valid_loss=None,
+            best_metrics_valid_seg=None,
+            binary_seg_weight=0,
+            multi_seg_weight=1,
+            classifier=None,
+            best_metrics_valid_class=None,
+            multi_task_weight=0
+        )
 
 
 # Press the green button in the gutter to run the script.
@@ -170,5 +157,3 @@ if __name__ == '__main__':
     # Check what experiment
 
     # Run training loop
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
