@@ -23,6 +23,8 @@ class Trainer:
             experiment_type="segment",
             optimizer_seg=None,
             optimizer_class=None,
+            lr_scheduler_seg=None,
+            lr_scheduler_class=None,
             loss_function_seg=DiceCEsoft(),
             loss_function_class=nn.CrossEntropyLoss(),
             input_type_class="multi",
@@ -33,8 +35,8 @@ class Trainer:
             train_loader: dataloader for training.
             val_loader: dataloader for validation.
             max_iterations: maximum number of training iterations.
-            ckpt_dir: directory to save model checkpoints'
-            res_dir: directory to save inference predictions and test set metrics
+            ckpt_dir: directory to save model checkpoints'.
+            res_dir: directory to save inference predictions and test set metrics.
             experiment_type: (str) defines experiment type
                             one of:
                                     "segment" (only train segmenter),
@@ -43,9 +45,11 @@ class Trainer:
                                     "LP" (VoxelMorph Label Propagation)
                             default "segment"
             optimizer_seg: segmentation network optimizer.
-            optimizer_class: classifier network oprimizer.
-            loss_function_seg: segmentation loss function (default DiceCE)
-            loss_function_class: classification loss function (default CE)
+            optimizer_class: classifier network optimizer.
+            lr_scheduler_seg: learning rate scheduler for segmenter network.
+            lr_scheduler_class: learning rate scheduler for classifier network.
+            loss_function_seg: segmentation loss function (default DiceCE).
+            loss_function_class: classification loss function (default CE).
             input_type_class: str defining expected input to classifier. One of:
                             "multi" = use multi-class segmentation labels,
                             "binary" = use binary segmentation labels (add multi-class preds)
@@ -66,6 +70,8 @@ class Trainer:
         self.input_type_class = input_type_class
         self.loss_function_class = loss_function_class
         self.loss_function_seg = loss_function_seg
+        self.lr_scheduler_seg = lr_scheduler_seg
+        self.lr_scheduler_class = lr_scheduler_class
 
         exp_names = ["segment", "classify", "joint", "LP"]
         in_class_names = ["multi", "binary", "img"]
@@ -79,6 +85,11 @@ class Trainer:
                              "should be either {}".format(exp_names))
 
     def get_training_dict(self, training=True):
+        """ Returns an empty dictionary to store training and validation losses and metrics
+            Args:
+                Training: boolean, set to False for validation metrics
+
+        """
         metrics_train_seg = {
                 'total_train_loss': [],
                 'multi_train_loss': [],
@@ -156,7 +167,6 @@ class Trainer:
                          epoch,
                          best_metrics_valid=0.0,
                          best_valid_loss=1000,
-                         lr_scheduler=None,
                          losses_train=None,
                          losses_valid=None,
                          segmenter=None
@@ -166,18 +176,13 @@ class Trainer:
             classifier: classifier network
             iteration: training iteration
             epoch: training epoch
-            metrics_train: dictionary with empty keys for each metric
-
-        :param classifier:
-        :param iteration:
-        :param epoch:
-        :param metrics_train:
-        :param best_valid_loss:
-        :param lr_scheduler:
-        :param losses_train:
-        :param losses_valid:
-        :param segmenter:
-        :return:
+            best_valid_loss: minimum validation loss recorded
+            losses_train: list of dicts containing training losses
+            losses_valid: list of dicts containing valid losses and metrics
+            segmenter: segmentation network
+        Returns:
+            latest training iteration, updated trainign and validation losses lists,
+            best validation metrics and losses
         """
 
         metrics_train = self.get_training_dict()
@@ -205,8 +210,8 @@ class Trainer:
 
             iteration += 1
 
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+        if self.lr_scheduler_class:
+            self.lr_scheduler_class.step()
 
         losses_train.append(metrics_train)
         utils.plot_losses_train(self.res_dir, losses_train, 'losses_train_class_')
@@ -231,7 +236,7 @@ class Trainer:
                                   epoch=epoch,
                                   losses_train=losses_train,
                                   losses_valid=losses_valid,
-                                  lr_scheduler=lr_scheduler,
+                                  lr_scheduler=self.lr_scheduler_seg,
                                   best_valid_loss=best_valid_loss,
                                   best_metric_valid=best_metrics_valid
                                   )
@@ -254,7 +259,7 @@ class Trainer:
                                       epoch=epoch,
                                       losses_train=losses_train,
                                       losses_valid=losses_valid,
-                                      lr_scheduler=lr_scheduler,
+                                      lr_scheduler=self.lr_scheduler_class,
                                       best_valid_loss=best_valid_loss,
                                       best_metric_valid=best_metrics_valid
                                       )
@@ -266,7 +271,7 @@ class Trainer:
                     )
                 )
 
-        return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss, lr_scheduler
+        return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss
 
     def valid_classifier(self,
                          classifier,
@@ -316,7 +321,6 @@ class Trainer:
                         segmenter,
                         iteration,
                         epoch,
-                        lr_scheduler=None,
                         binary_seg_weight=1,
                         multi_seg_weight=1,
                         best_metrics_valid=0.0,
@@ -353,8 +357,8 @@ class Trainer:
 
             iteration += 1
 
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+        if self.lr_scheduler_seg:
+            self.lr_scheduler_seg.step()
 
         losses_train.append(metrics_train)
         utils.plot_losses_train(self.res_dir, losses_train, 'losses_train_seg_')
@@ -378,7 +382,7 @@ class Trainer:
                                   epoch=epoch,
                                   losses_train=losses_train,
                                   losses_valid=losses_valid,
-                                  lr_scheduler=lr_scheduler,
+                                  lr_scheduler=self.lr_scheduler_seg,
                                   binary_seg_weight=binary_seg_weight,
                                   multi_seg_weight=multi_seg_weight,
                                   best_valid_loss=best_valid_loss,
@@ -403,7 +407,7 @@ class Trainer:
                                           epoch=epoch,
                                           losses_train=losses_train,
                                           losses_valid=losses_valid,
-                                          lr_scheduler=lr_scheduler,
+                                          lr_scheduler=self.lr_scheduler_seg,
                                           binary_seg_weight=binary_seg_weight,
                                           multi_seg_weight=multi_seg_weight,
                                           best_valid_loss=best_valid_loss,
@@ -421,7 +425,7 @@ class Trainer:
                                           epoch=epoch,
                                           losses_train=losses_train,
                                           losses_valid=losses_valid,
-                                          lr_scheduler=lr_scheduler,
+                                          lr_scheduler=self.lr_scheduler_seg,
                                           binary_seg_weight=binary_seg_weight,
                                           multi_seg_weight=multi_seg_weight,
                                           best_valid_loss=best_valid_loss,
@@ -436,7 +440,7 @@ class Trainer:
                     )
                 )
 
-        return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss, lr_scheduler
+        return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss
 
     def valid_segmenter(self, segmenter, losses_valid=None):
 
@@ -496,8 +500,6 @@ class Trainer:
                     segmenter,
                     iteration,
                     epoch,
-                    lr_scheduler_seg=None,
-                    lr_scheduler_class=None,
                     binary_seg_weight=1,
                     multi_seg_weight=1,
                     multi_task_weight=1,
@@ -552,11 +554,11 @@ class Trainer:
             iteration += 1
 
         # Step through LR schedulers
-        if lr_scheduler_seg is not None:
-            lr_scheduler_seg.step()
+        if self.lr_scheduler_seg:
+            self.lr_scheduler_seg.step()
 
-        if lr_scheduler_class is not None:
-            lr_scheduler_class.step()
+        if self.lr_scheduler_class:
+            self.lr_scheduler_class.step()
 
         losses_train.append(metrics_train)
         utils.plot_losses_train(self.res_dir, losses_train, 'losses_train_seg_')
@@ -568,7 +570,6 @@ class Trainer:
             losses_valid, mean_dice_val, mean_accuracy = self.valid_joint(
                 segmenter,
                 classifier,
-                metrics_valid,
                 binary_seg_weight=binary_seg_weight,
                 multi_seg_weight=multi_seg_weight,
                 multi_task_weight=multi_task_weight,
@@ -584,7 +585,7 @@ class Trainer:
                                   epoch=epoch,
                                   losses_train=losses_train,
                                   losses_valid=losses_valid,
-                                  lr_scheduler=lr_scheduler_seg,
+                                  lr_scheduler=self.lr_scheduler_seg,
                                   binary_seg_weight=binary_seg_weight,
                                   multi_seg_weight=multi_seg_weight,
                                   best_metric_valid=best_metrics_valid_seg
@@ -606,7 +607,7 @@ class Trainer:
                                       epoch=epoch,
                                       losses_train=losses_train,
                                       losses_valid=losses_valid,
-                                      lr_scheduler=lr_scheduler_seg,
+                                      lr_scheduler=self.lr_scheduler_seg,
                                       binary_seg_weight=binary_seg_weight,
                                       multi_seg_weight=multi_seg_weight,
                                       best_metric_valid=best_metrics_valid_seg
@@ -637,7 +638,7 @@ class Trainer:
                                       epoch=epoch,
                                       losses_train=losses_train,
                                       losses_valid=losses_valid,
-                                      lr_scheduler=lr_scheduler_class,
+                                      lr_scheduler=self.lr_scheduler_class,
                                       best_metric_valid=best_metrics_valid_class
                                       )
             else:
@@ -649,8 +650,7 @@ class Trainer:
                 )
 
         return iteration, losses_train, losses_valid, \
-               best_metrics_valid_class, best_metrics_valid_seg, \
-               lr_scheduler_seg, lr_scheduler_class
+               best_metrics_valid_class, best_metrics_valid_seg,
 
     def valid_joint(self,
                     segmenter,
