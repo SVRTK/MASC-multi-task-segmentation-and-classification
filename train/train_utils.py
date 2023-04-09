@@ -182,7 +182,7 @@ def add_softmax_labels(softmax_preds):
     return added_preds
 
 
-def cuda(xs):
+def cuda(xs, device_num=None):
     """ Sends torch tensor to cuda device
         Args:
             xs: torch tensor
@@ -191,6 +191,8 @@ def cuda(xs):
 
     """
     if torch.cuda.is_available():
+        if device_num:
+            torch.cuda.set_device(device_num)
         if not isinstance(xs, (list, tuple)):
             return xs.cuda()
         else:
@@ -262,6 +264,26 @@ def load_checkpoint(ckpt_path, map_location=None):
     ckpt = torch.load(ckpt_path, map_location=map_location)
     print(' [*] Loading checkpoint from %s succeed!' % ckpt_path)
     return ckpt
+
+
+def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer):
+    # Loading pretrained model
+    try:
+        ckpt = load_checkpoint(ckpt_path='{}{}.ckpt'.format(ckpt_dir, ckpt_name))
+        model.load_state_dict(ckpt['model'])
+        optimizer.load_state_dict(ckpt['optimizer'])
+        losses_train_init_class = ckpt['losses_train']
+        losses_valid_init_class = ckpt['losses_valid']
+        iteration = ckpt['iteration']
+        epoch = ckpt['epoch']
+    except:
+        print("Starting training from scratch")
+        losses_train_init_class = []
+        losses_valid_init_class = []
+        iteration = 0
+        epoch = 0
+
+    return losses_train_init_class, losses_valid_init_class, iteration, epoch
 
 
 def plot_losses_train(res_dir, losses_train, title_plot):

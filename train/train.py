@@ -673,4 +673,3 @@ class RunTrain(Trainer):
         utils.plot_losses_train(self.res_dir, losses_valid, 'metrics_valid_joint')
 
         return losses_valid, mean_dice_val, accuracy
-
