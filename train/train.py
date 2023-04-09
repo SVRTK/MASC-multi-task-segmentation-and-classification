@@ -91,15 +91,15 @@ class Trainer:
 
         """
         metrics_train_seg = {
-                'total_train_loss': [],
-                'multi_train_loss': [],
-                'binary_train_loss': []
-                }
+            'total_train_loss': [],
+            'multi_train_loss': [],
+            'binary_train_loss': []
+        }
         metrics_valid_seg = {
-                'dice_valid': [],
-                'multi_valid_loss': [],
-                'binary_valid_loss': []
-                }
+            'dice_valid': [],
+            'multi_valid_loss': [],
+            'binary_valid_loss': []
+        }
         metrics_train_class = {'total_train_loss': []}
         metrics_valid_class = {'total_valid_loss': [], 'accuracy': []}
 
@@ -176,13 +176,14 @@ class Trainer:
             classifier: classifier network
             iteration: training iteration
             epoch: training epoch
+            best_metrics_valid: the best accuracy on validation set
             best_valid_loss: minimum validation loss recorded
             losses_train: list of dicts containing training losses
             losses_valid: list of dicts containing valid losses and metrics
             segmenter: segmentation network
         Returns:
-            latest training iteration, updated trainign and validation losses lists,
-            best validation metrics and losses
+            latest training iteration, updated training and validation losses lists,
+            the best validation metrics and losses
         """
 
         metrics_train = self.get_training_dict()
@@ -278,6 +279,14 @@ class Trainer:
                          losses_valid=None,
                          segmenter=None
                          ):
+        """ Validation loop for classifier. Computes classifier loss and accuracy on validation set
+        Args:
+            classifier: classifier network
+            losses_valid: list of dicts containing valid losses and metrics
+            segmenter: segmentation network
+        Returns:
+            updated validation losses lists, mean loss, and accuracy
+        """
 
         metrics_valid = self.get_training_dict(training=False)
         classifier.eval()
@@ -328,6 +337,21 @@ class Trainer:
                         losses_train=None,
                         losses_valid=None,
                         ):
+        """ Training loop for segmenter only
+        Args:
+            segmenter: segmenter network
+            iteration: training iteration
+            epoch: training epoch
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels)
+            best_metrics_valid: the best dice on validation set
+            best_valid_loss: minimum validation loss recorded
+            losses_train: list of dicts containing training losses
+            losses_valid: list of dicts containing valid losses and metrics
+        Returns:
+            latest training iteration, updated training and validation losses lists,
+            the best validation metrics and losses
+        """
 
         metrics_train = self.get_training_dict()
         segmenter.train()
@@ -443,6 +467,13 @@ class Trainer:
         return iteration, losses_train, losses_valid, best_metrics_valid, best_valid_loss
 
     def valid_segmenter(self, segmenter, losses_valid=None):
+        """ Validation loop for segmenter. Computes segmentation loss and dice metric on validation set
+        Args:
+            segmenter: segmenter network
+            losses_valid: list of dicts containing valid losses and metrics
+        Returns:
+            updated validation losses lists, mean multi-class loss and dice
+        """
 
         metrics_valid = self.get_training_dict(training=False)
         segmenter.eval()
@@ -508,6 +539,24 @@ class Trainer:
                     losses_train=None,
                     losses_valid=None,
                     ):
+        """ Training loop for our multi-task framework (joint segmenter + classifier)
+        Args:
+            classifier: classifier network
+            segmenter: segmenter network
+            iteration: training iteration
+            epoch: training epoch
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels)
+            multi_task_weight: weight for our multi-task framework (balance between class and seg loss)
+            best_metrics_valid_seg: the best dice on validation set
+            best_metrics_valid_class: the best accuracy on validation set
+            losses_train: list of dicts containing training losses
+            losses_valid: list of dicts containing valid losses and metrics
+        Returns:
+            latest training iteration, updated training and validation losses lists,
+            the best validation metrics (accuracy and dice)
+
+        """
 
         metrics_train = self.get_training_dict()
         segmenter.train()
@@ -519,7 +568,7 @@ class Trainer:
 
         for batch in epoch_iterator:
             img, LP, mask, label = (
-            batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"].cuda())
+                batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"].cuda())
 
             # Pass through segmenter
             logit_map = segmenter(img)
@@ -650,7 +699,7 @@ class Trainer:
                 )
 
         return iteration, losses_train, losses_valid, \
-               best_metrics_valid_class, best_metrics_valid_seg,
+               best_metrics_valid_class, best_metrics_valid_seg
 
     def valid_joint(self,
                     segmenter,
@@ -660,6 +709,18 @@ class Trainer:
                     multi_task_weight=1,
                     losses_valid=None,
                     ):
+        """ Validation loop for our multi-task framework .
+        Computes segmentation dice metric and classfier accuracy on validation set
+        Args:
+            segmenter: segmenter network
+            classifier: classifier network
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels)
+            multi_task_weight: weight for our multi-task framework (balance between class and seg loss)
+            losses_valid: list of dicts containing valid losses and metrics
+        Returns:
+            updated validation losses lists, mean multi-class loss and dice
+        """
         metrics_valid = self.get_training_dict(training=False)
         segmenter.eval()
         classifier.eval()
