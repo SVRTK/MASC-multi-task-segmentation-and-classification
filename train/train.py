@@ -196,13 +196,15 @@ class Trainer:
         for batch in epoch_iterator:
             img, label = (batch["image"].cuda(), batch["label"].cuda())
             class_in = self.get_input_classifier(img=img, segmenter=segmenter)
-            pred = classifier(class_in)
 
+            # Pass through classifier, compute loss and backprop
+            pred = classifier(class_in)
             total_loss = self.loss_function_class(pred, label)
             total_loss.backward()
             self.optimizer_class.step()
             self.optimizer_class.zero_grad()
 
+            # Append metrics for this epoch
             metrics_train['total_train_loss'].append(total_loss.item())
 
             epoch_iterator.set_description(
@@ -211,6 +213,7 @@ class Trainer:
 
             iteration += 1
 
+        # Step through scheduler and add epoch metrics to list of all training metrics
         if self.lr_scheduler_class:
             self.lr_scheduler_class.step()
 
@@ -241,6 +244,8 @@ class Trainer:
                                   best_valid_loss=best_valid_loss,
                                   best_metric_valid=best_metrics_valid
                                   )
+
+            # Checkpoint best network and overwrite best metric
             if mean_accuracy > best_metrics_valid or mean_valid_loss < best_valid_loss:
                 print(
                     "Classifier Model Was Saved ! Current Best Accuracy: {} "
@@ -301,11 +306,14 @@ class Trainer:
 
         for batch in epoch_iterator_val:
             img, label = (batch["image"].cuda(), batch["label"].cuda())
+
+            # Forward pass and validation loss computation
             with torch.no_grad():
                 class_in = self.get_input_classifier(img=img, segmenter=segmenter)
                 pred = classifier(class_in)
+                total_loss = self.loss_function_class(pred, label)
 
-            total_loss = self.loss_function_class(pred, label)
+            # Count the number of correct classifications
             value = torch.eq(pred.argmax(dim=1), label)
             metric_count += len(value)
             num_correct += value.sum().item()
@@ -316,7 +324,7 @@ class Trainer:
 
             metrics_valid['total_valid_loss'].append(total_loss.item())
 
-        # Computing accuracy
+        # Compute epoch accuracy and append epoch metrics
         metric = num_correct / metric_count
         mean_losses = np.mean(loss_vals)
         metrics_valid['accuracy'].append(metric)
@@ -362,25 +370,28 @@ class Trainer:
 
         for batch in epoch_iterator:
             img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
-            logit_map = segmenter(img)
 
+            # Forward pass, segmentation loss function computation and backprop
+            logit_map = segmenter(img)
             total_loss, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
                                                                         multi_seg_weight=multi_seg_weight,
                                                                         binary_seg_weight=binary_seg_weight)
             total_loss.backward()
+            self.optimizer_seg.step()
+            self.optimizer_seg.zero_grad()
 
+            # Append metrics for this epoch to empty dict
             metrics_train['total_train_loss'].append(total_loss.item())
             metrics_train['multi_train_loss'].append(multi_loss.item())
             metrics_train['binary_train_loss'].append(binary_loss.item())
 
-            self.optimizer_seg.step()
-            self.optimizer_seg.zero_grad()
             epoch_iterator.set_description(
                 "Training (%d / %d Steps) (loss=%2.5f)" % (iteration, self.max_iterations, total_loss)
             )
 
             iteration += 1
 
+        # Step through scheduler and append epoch metrics to overal metrics
         if self.lr_scheduler_seg:
             self.lr_scheduler_seg.step()
 
@@ -412,6 +423,7 @@ class Trainer:
                                   best_valid_loss=best_valid_loss,
                                   best_metric_valid=best_metrics_valid
                                   )
+            # Checkpoint best network and overwrite the best validation metrics
             if mean_dice_val > best_metrics_valid or mean_multi_loss < best_valid_loss:
                 print(
                     "Segmenter Model Was Saved ! Current Best Dice: {} "
@@ -490,21 +502,28 @@ class Trainer:
         for batch in epoch_iterator_val:
             img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
 
+            # Forward pass and loss computation
             with torch.no_grad():
                 logit_map = segmenter(img)
                 total_loss, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP)
 
+            # Add labels to for a single binary ROI mask
             binary_out = utils.add_softmax_labels(torch.softmax(logit_map, dim=1))
+
+            # One-hot encode labels
             val_labels_list = transforms.decollate_batch(mask)
             val_labels_convert = [
                 post_label(val_label_tensor) for val_label_tensor in val_labels_list
             ]
+
+            # Argmax and one-hot encode preds
             val_outputs_list = transforms.decollate_batch(binary_out)
             val_output_convert = [
                 post_label(torch.argmax(val_pred_tensor, dim=0).unsqueeze(0))
                 for val_pred_tensor in val_outputs_list
             ]
 
+            # Compute dice metric
             dice_metric(y_pred=val_output_convert, y=val_labels_convert)
             dice = dice_metric.aggregate().item()
             dice_vals.append(dice)
@@ -518,6 +537,7 @@ class Trainer:
 
         dice_metric.reset()
 
+        # Compute mean validation metrics for this epoch
         mean_seg_multi_loss = np.mean(seg_multi_loss_vals)
         mean_dice_val = np.mean(dice_vals)
         losses_valid.append(metrics_valid)
@@ -570,13 +590,13 @@ class Trainer:
             img, LP, mask, label = (
                 batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"].cuda())
 
-            # Pass through segmenter
+            # Pass through segmenter & segmenter loss computation
             logit_map = segmenter(img)
             total_loss_seg, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
                                                                             multi_seg_weight=multi_seg_weight,
                                                                             binary_seg_weight=binary_seg_weight)
 
-            # Pass through classifier
+            # Pass through classifier & classifier loss computation
             class_in = torch.softmax(logit_map, dim=1)
             pred = classifier(class_in)
             loss_class = self.loss_function_class(pred, label)
@@ -584,12 +604,12 @@ class Trainer:
             # Compute total loss and backprop
             total_loss = total_loss_seg + multi_task_weight * loss_class
             total_loss.backward()
-
             self.optimizer_seg.step()
             self.optimizer_class.step()
             self.optimizer_class.zero_grad()
             self.optimizer_seg.zero_grad()
 
+            # Append epoch training losses to empty dict
             metrics_train['total_train_loss_seg'].append(total_loss_seg.item())
             metrics_train['multi_train_loss'].append(multi_loss.item())
             metrics_train['binary_train_loss'].append(binary_loss.item())
@@ -639,6 +659,8 @@ class Trainer:
                                   multi_seg_weight=multi_seg_weight,
                                   best_metric_valid=best_metrics_valid_seg
                                   )
+
+            # Checkpoint best segmenter and overwrite the best validation metric
             if mean_dice_val > best_metrics_valid_seg:
                 print(
                     "Segmenter Model Was Saved ! Current Best Dice: {} Current Avg. Dice: {}".format(
@@ -669,6 +691,7 @@ class Trainer:
                     )
                 )
 
+            # Checkpoint best classifier and overwrite the best validation metric
             if mean_accuracy > best_metrics_valid_class:
                 print(
                     "Classifier Model Was Saved ! Current Best Accuracy: {} "
@@ -739,13 +762,13 @@ class Trainer:
             img, LP, mask, label = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"])
 
             with torch.no_grad():
-                # Pass through segmenter
+
+                # Pass through segmenter & loss computation
                 logit_map = segmenter(img)
                 total_loss_seg, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
                                                                                 multi_seg_weight=multi_seg_weight,
                                                                                 binary_seg_weight=binary_seg_weight)
-
-                # Pass through classifier
+                # Pass through classifier & loss computation
                 class_in = torch.softmax(logit_map, dim=1)
                 pred = classifier(class_in)
                 loss_class = self.loss_function_class(pred, label)
@@ -776,6 +799,7 @@ class Trainer:
                 "Validate (dice=%2.5f)" % (dice)
             )
 
+            # Append validation metrics to empty epoch dict
             metrics_valid['dice_valid'].append(dice)
             metrics_valid['binary_valid_loss'].append(binary_loss)
             metrics_valid['multi_valid_loss'].append(multi_loss)
@@ -787,6 +811,7 @@ class Trainer:
         accuracy = num_correct / metric_count
         metrics_valid['accuracy'].append(accuracy)
 
+        # Mean epoch metrics
         losses_valid.append(metrics_valid)
         mean_dice_val = np.mean(dice_vals)
         losses_valid.append(metrics_valid)
