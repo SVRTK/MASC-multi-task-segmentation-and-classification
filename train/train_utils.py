@@ -28,29 +28,30 @@ class Trainer:
     ):
         """
         Args:
-            train_loader: dataloader for training.
-            val_loader: dataloader for validation.
-            max_iterations: maximum number of training iterations.
-            ckpt_dir: directory to save model checkpoints'.
-            res_dir: directory to save inference predictions and test set metrics.
-            experiment_type: (str) defines experiment type
+            train_loader: dataloader for training (pytorch dataloader)
+            val_loader: dataloader for validation (pytorch dataloader)
+            max_iterations: maximum number of training iterations (int)
+            ckpt_dir: directory to save model checkpoints' (str)
+            res_dir: directory to save inference predictions and test set metrics (str)
+            experiment_type: defines experiment type (str) 
                             one of:
                                     "segment" (only train segmenter),
                                     "classify" (only train classifier),
                                     "joint" (multi-task joint classifier + segmenter)
                                     "LP" (VoxelMorph Label Propagation)
                             default "segment"
-            optimizer_seg: segmentation network optimizer.
-            optimizer_class: classifier network optimizer.
-            lr_scheduler_seg: learning rate scheduler for segmenter network.
-            lr_scheduler_class: learning rate scheduler for classifier network.
-            loss_function_seg: segmentation loss function (default DiceCE).
-            loss_function_class: classification loss function (default CE).
-            input_type_class: str defining expected input to classifier. One of:
-                            "multi" = use multi-class segmentation labels,
-                            "binary" = use binary segmentation labels (add multi-class preds)
-                            "img" = use input volume image
-            eval_num: number of epochs between each validation loop (default 1).
+            optimizer_seg: segmentation network optimizer (pytorch model)
+            optimizer_class: classifier network optimizer (pytorch model) 
+            lr_scheduler_seg: learning rate scheduler for segmenter network (pytorch LR scheduler)
+            lr_scheduler_class: learning rate scheduler for classifier network (pytorch LR scheduler)
+            loss_function_seg: segmentation loss function (default DiceCE) (pytorch loss function)
+            loss_function_class: classification loss function (default CE) (pytorch loss function)
+            input_type_class: str defining expected input to classifier (str).
+                            One of:
+                                "multi" = use multi-class segmentation labels,
+                                "binary" = use binary segmentation labels (add multi-class preds)
+                                "img" = use input volume image
+            eval_num: number of epochs between each validation loop (default 1) (int)
         """
         super().__init__()
 
@@ -81,9 +82,9 @@ class Trainer:
                              "should be either {}".format(exp_names))
 
     def get_training_dict(self, training=True):
-        """ Returns an empty dictionary to store training and validation losses and metrics
+        """ Returns an empty dictionary to store training and validation losses and metrics (for each epoch)
             Args:
-                training: boolean, set to False for validation metrics
+                training: set to False for validation metrics (bool)
 
         """
         metrics_train_seg = {
@@ -125,11 +126,11 @@ class Trainer:
     def compute_seg_loss(self, logit_map, mask, LP, binary_seg_weight=1, multi_seg_weight=1):
         """Computes total segmentation loss combining multi-class propagated labels and binary
         Args:
-            logit_map: segmentation network output logits
-            mask: binary mask torch tensor
-            LP: multi-class vessel mask torch tensor
-            binary_seg_weight: weight for binary segmentation loss
-            multi_seg_weight: weight for multi-class segmentation loss
+            logit_map: segmentation network output logits (torch tensor)
+            mask: binary mask (torch tensor)
+            LP: multi-class vessel mask (torch tensor)
+            binary_seg_weight: weight for binary segmentation loss (float)
+            multi_seg_weight: weight for multi-class segmentation loss (float)
 
         Returns: total segmentation loss, binary loss, multi-class loss
         """
@@ -143,8 +144,8 @@ class Trainer:
     def get_input_classifier(self, img=None, segmenter=None):
         """ Generates input tensor to classifier based on input_type_class parameter
             Args:
-                img: original image tensor - default
-                segmenter: segmentation network
+                img: original image tensor - default (torch tensor)
+                segmenter: segmentation network (pytorch model)
             Returns torch tensor to be used as input to classifier
         """
         if self.input_type_class == "img" or not segmenter:
@@ -163,7 +164,7 @@ def add_softmax_labels(softmax_preds):
         Assumes background in first channel
 
     Args:
-        softmax_preds: multi-class softmax network segmentation predictions (shape BNH[WD])
+        softmax_preds: multi-class softmax network segmentation predictions (shape BNH[WD]) (torch tensor)
     Returns: torch tensor with original image shape and two channels, background and foreground
     """
 
@@ -173,8 +174,14 @@ def add_softmax_labels(softmax_preds):
     return added_preds
 
 
-# To make cuda tensor
 def cuda(xs):
+    """ Sends torch tensor to cuda device
+        Args:
+            xs: torch tensor
+        Returns:
+            cuda tensor
+
+    """
     if torch.cuda.is_available():
         if not isinstance(xs, (list, tuple)):
             return xs.cuda()
@@ -182,7 +189,6 @@ def cuda(xs):
             return [x.cuda() for x in xs]
 
 
-# To save the checkpoint
 def save_checkpoint(ckpt_name,
                     ckpt_dir,
                     model,
@@ -199,6 +205,25 @@ def save_checkpoint(ckpt_name,
                     best_valid_loss=None,
                     best_metric_valid=None,
                     ):
+    """ Saves network checkpoint as a dict, with option to save training and valid losses
+        Args:
+            ckpt_name: checkpoint file name (str)
+            ckpt_dir: directory where checkpoint will be stored (str)
+            model: latest model to checkpoint (pytorch model)
+            optimizer: optimizer to checkpoint (pytorch optimizer)
+            iteration: latest iteration (int)
+            epoch: latest epoch (int)
+            losses_train: list of dictionaries containing training losses (list)
+            losses_valid: list of dictionaries containing valid losses (list)
+            losses_train_joint: list of dictionaries containing joint training losses (list)
+            losses_valid_joint: list of dictionaries containing joint valid losses (list)
+            lr_scheduler: learning rate scheduler (pytorch LR scheduler)
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
+            multi_task_weight: weight for our multi-task framework (balance between class and seg loss) (float)
+            best_valid_loss: the best mean validation loss (float)
+            best_metric_valid: the best mean validation metric (float)
+    """
 
     model = model.state_dict()
     optimizer = optimizer.state_dict()
@@ -217,20 +242,32 @@ def save_checkpoint(ckpt_name,
 
 # To load the checkpoint
 def load_checkpoint(ckpt_path, map_location=None):
+    """ Loads network checkpoint from .ckpt file
+        Args:
+            ckpt_path: directory and checkpoint name (str)
+            map_location: change the device of the tensors in the state dict
+                            set to None for GPU training (str, e.g. 'cpu')
+
+        Returns:
+            Checkpoint
+    """
     ckpt = torch.load(ckpt_path, map_location=map_location)
     print(' [*] Loading checkpoint from %s succeed!' % ckpt_path)
     return ckpt
 
 
 def plot_losses_train(res_dir, losses_train, title_plot):
-    # Get some variables about the train
-    ####################
+    """ Plots and saves the training/validation losses as .svg & .eps files
+        Args:
+            res_dir: directory to save the plotted losses (str)
+            losses_train: list of dicts containing losses for each epoch (list)
+            title_plot: title of saved plot file (str)
+    """
     n_epochs_train = len(losses_train)
     keys_train = list(losses_train[0].keys())
     n_iter_train = len(losses_train[0][keys_train[0]])
 
-    # Average losses
-    ####################
+    # Average losses (over each epoch)
     losses_train_mean = {key_: [] for key_ in keys_train}
     losses_train_std = {key_: [] for key_ in keys_train}
     for epoch_ in losses_train:
@@ -239,7 +276,6 @@ def plot_losses_train(res_dir, losses_train, title_plot):
             losses_train_std[key_].append(np.std(epoch_[key_]))
 
     # Plot losses
-    ####################
     import matplotlib.pyplot as plt
     start_epoch = 2
 
@@ -259,8 +295,8 @@ def plot_losses_train(res_dir, losses_train, title_plot):
         if i_ >= len(keys_train) - 1:
             break
 
-    plt.savefig(res_dir + '/' + title_plot + '.png',
-                dpi=200, bbox_inches='tight', transparent=True)
     plt.savefig(res_dir + '/' + title_plot + '.svg',
-                dpi=200, bbox_inches='tight', transparent=True)
+                format='svg', bbox_inches='tight', transparent=True)
+    plt.savefig(res_dir + '/' + title_plot + '.eps',
+                format='eps', bbox_inches='tight', transparent=True)
     plt.close()

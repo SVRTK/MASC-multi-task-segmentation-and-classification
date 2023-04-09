@@ -27,14 +27,14 @@ class RunTrain(Trainer):
                          ):
         """ Training loop for classifier only
         Args:
-            classifier: classifier network
-            iteration: training iteration
-            epoch: training epoch
-            best_metrics_valid: the best accuracy on validation set
-            best_valid_loss: minimum validation loss recorded
-            losses_train: list of dicts containing training losses
-            losses_valid: list of dicts containing valid losses and metrics
-            segmenter: segmentation network
+            classifier: classifier network (pytorch model)
+            iteration: training iteration (int)
+            epoch: training epoch (int)
+            best_metrics_valid: the best accuracy on validation set (float)
+            best_valid_loss: minimum validation loss recorded (float)
+            losses_train: list of dicts containing training losses for each epoch (list)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
+            segmenter: segmentation network (pytorch model)
         Returns:
             latest training iteration, updated training and validation losses lists,
             the best validation metrics and losses
@@ -140,9 +140,9 @@ class RunTrain(Trainer):
                          ):
         """ Validation loop for classifier. Computes classifier loss and accuracy on validation set
         Args:
-            classifier: classifier network
-            losses_valid: list of dicts containing valid losses and metrics
-            segmenter: segmentation network
+            classifier: classifier network (pytorch model)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
+            segmenter: segmentation network (pytorch model)
         Returns:
             updated validation losses lists, mean loss, and accuracy
         """
@@ -201,15 +201,15 @@ class RunTrain(Trainer):
                         ):
         """ Training loop for segmenter only
         Args:
-            segmenter: segmenter network
-            iteration: training iteration
-            epoch: training epoch
-            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
-            multi_seg_weight: weight for multi-class loss (LP and pred labels)
-            best_metrics_valid: the best dice on validation set
-            best_valid_loss: minimum validation loss recorded
-            losses_train: list of dicts containing training losses
-            losses_valid: list of dicts containing valid losses and metrics
+            segmenter: segmenter network (pytorch model)
+            iteration: training iteration (int)
+            epoch: training epoch (int)
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
+            best_metrics_valid: the best dice on validation set (float)
+            best_valid_loss: minimum validation loss recorded (float)
+            losses_train: list of dicts containing training losses for each epoch (list)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
         Returns:
             latest training iteration, updated training and validation losses lists,
             the best validation metrics and losses
@@ -335,8 +335,8 @@ class RunTrain(Trainer):
     def valid_segmenter(self, segmenter, losses_valid=None):
         """ Validation loop for segmenter. Computes segmentation loss and dice metric on validation set
         Args:
-            segmenter: segmenter network
-            losses_valid: list of dicts containing valid losses and metrics
+            segmenter: segmenter network (pytorch model)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
         Returns:
             updated validation losses lists, mean multi-class loss and dice
         """
@@ -415,17 +415,17 @@ class RunTrain(Trainer):
                     ):
         """ Training loop for our multi-task framework (joint segmenter + classifier)
         Args:
-            classifier: classifier network
-            segmenter: segmenter network
-            iteration: training iteration
-            epoch: training epoch
-            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
-            multi_seg_weight: weight for multi-class loss (LP and pred labels)
-            multi_task_weight: weight for our multi-task framework (balance between class and seg loss)
-            best_metrics_valid_seg: the best dice on validation set
-            best_metrics_valid_class: the best accuracy on validation set
-            losses_train: list of dicts containing training losses
-            losses_valid: list of dicts containing valid losses and metrics
+            classifier: classifier network (pytorch model)
+            segmenter: segmenter network (pytorch model)
+            iteration: training iteration (int)
+            epoch: training epoch (int)
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
+            multi_task_weight: weight for our multi-task framework (balance between class and seg loss) (float)
+            best_metrics_valid_seg: the best dice on validation set (float)
+            best_metrics_valid_class: the best accuracy on validation set (float)
+            losses_train: list of dicts containing training losses for each epoch (list)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
         Returns:
             latest training iteration, updated training and validation losses lists,
             the best validation metrics (accuracy and dice)
@@ -589,12 +589,12 @@ class RunTrain(Trainer):
         """ Validation loop for our multi-task framework .
         Computes segmentation dice metric and classfier accuracy on validation set
         Args:
-            segmenter: segmenter network
-            classifier: classifier network
-            binary_seg_weight: weight for binary loss (manual labels and joined pred labels)
-            multi_seg_weight: weight for multi-class loss (LP and pred labels)
-            multi_task_weight: weight for our multi-task framework (balance between class and seg loss)
-            losses_valid: list of dicts containing valid losses and metrics
+            segmenter: segmenter network (pytorch model)
+            classifier: classifier network (pytorch model)
+            binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
+            multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
+            multi_task_weight: weight for our multi-task framework (balance between class and seg loss) (float)
+            losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
         Returns:
             updated validation losses lists, mean multi-class loss and dice
         """
