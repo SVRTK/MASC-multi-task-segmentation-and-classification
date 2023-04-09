@@ -1,165 +1,19 @@
 import torch
-import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 from monai import transforms
 
-from networks.losses import DiceCEsoft
-from train import utils
+from train import train_utils as utils
+from train_utils import Trainer
 
 
-class Trainer:
-    """ Parent class with access to all training and validation utilities and functions
+class RunTrain(Trainer):
+    """ Training class with access to all training and validation loops, including
+        exclusive training and validation of segmentation and classifier network,
+        and joint multi-task training and validation
 
+        Inherits from utils Trainer class
     """
-
-    def __init__(
-            self,
-            train_loader,
-            val_loader,
-            max_iterations,
-            ckpt_dir,
-            res_dir,
-            experiment_type="segment",
-            optimizer_seg=None,
-            optimizer_class=None,
-            lr_scheduler_seg=None,
-            lr_scheduler_class=None,
-            loss_function_seg=DiceCEsoft(),
-            loss_function_class=nn.CrossEntropyLoss(),
-            input_type_class="multi",
-            eval_num=1
-    ):
-        """
-        Args:
-            train_loader: dataloader for training.
-            val_loader: dataloader for validation.
-            max_iterations: maximum number of training iterations.
-            ckpt_dir: directory to save model checkpoints'.
-            res_dir: directory to save inference predictions and test set metrics.
-            experiment_type: (str) defines experiment type
-                            one of:
-                                    "segment" (only train segmenter),
-                                    "classify" (only train classifier),
-                                    "joint" (multi-task joint classifier + segmenter)
-                                    "LP" (VoxelMorph Label Propagation)
-                            default "segment"
-            optimizer_seg: segmentation network optimizer.
-            optimizer_class: classifier network optimizer.
-            lr_scheduler_seg: learning rate scheduler for segmenter network.
-            lr_scheduler_class: learning rate scheduler for classifier network.
-            loss_function_seg: segmentation loss function (default DiceCE).
-            loss_function_class: classification loss function (default CE).
-            input_type_class: str defining expected input to classifier. One of:
-                            "multi" = use multi-class segmentation labels,
-                            "binary" = use binary segmentation labels (add multi-class preds)
-                            "img" = use input volume image
-            eval_num: number of epochs between each validation loop (default 1).
-        """
-        super().__init__()
-
-        self.optimizer_seg = optimizer_seg
-        self.optimizer_class = optimizer_class
-        self.train_loader = train_loader
-        self.val_loader = val_loader
-        self.max_iterations = max_iterations
-        self.ckpt_dir = ckpt_dir
-        self.res_dir = res_dir
-        self.eval_num = eval_num
-        self.experiment_type = experiment_type
-        self.input_type_class = input_type_class
-        self.loss_function_class = loss_function_class
-        self.loss_function_seg = loss_function_seg
-        self.lr_scheduler_seg = lr_scheduler_seg
-        self.lr_scheduler_class = lr_scheduler_class
-
-        exp_names = ["segment", "classify", "joint", "LP"]
-        in_class_names = ["multi", "binary", "img"]
-
-        if self.experiment_type not in exp_names:
-            raise ValueError("experiment_type parameter"
-                             "should be either {}".format(exp_names))
-
-        if self.input_type_class not in in_class_names:
-            raise ValueError("input_type_class parameter"
-                             "should be either {}".format(exp_names))
-
-    def get_training_dict(self, training=True):
-        """ Returns an empty dictionary to store training and validation losses and metrics
-            Args:
-                Training: boolean, set to False for validation metrics
-
-        """
-        metrics_train_seg = {
-            'total_train_loss': [],
-            'multi_train_loss': [],
-            'binary_train_loss': []
-        }
-        metrics_valid_seg = {
-            'dice_valid': [],
-            'multi_valid_loss': [],
-            'binary_valid_loss': []
-        }
-        metrics_train_class = {'total_train_loss': []}
-        metrics_valid_class = {'total_valid_loss': [], 'accuracy': []}
-
-        metrics_train_joint = {
-            'total_train_loss_seg': [],
-            'multi_train_loss': [],
-            'binary_train_loss': [],
-            'total_loss': []
-        }
-        metrics_valid_joint = {
-            'dice_valid': [],
-            'binary_valid_loss': [],
-            'multi_valid_loss': [],
-            'total_valid_loss': [],
-            'accuracy': [],
-        }
-
-        if self.experiment_type == "classify":
-            return metrics_train_class if training else metrics_valid_class
-
-        elif self.experiment_type == "segment":
-            return metrics_train_seg if training else metrics_valid_seg
-
-        elif self.experiment_type == "joint":
-            return metrics_train_joint if training else metrics_valid_joint
-
-    def compute_seg_loss(self, logit_map, mask, LP, binary_seg_weight=1, multi_seg_weight=1):
-        """Computes total segmentation loss combining multi-class propagated labels and binary
-        Args:
-            logit_map: segmentation network output logits
-            mask: binary mask torch tensor
-            LP: multi-class vessel mask torch tensor
-            binary_seg_weight: weight for binary segmentation loss
-            multi_seg_weight: weight for multi-class segmentation loss
-
-        Returns: total segmentation loss, binary loss, multi-class loss
-        """
-        pred = torch.softmax(logit_map, dim=1)
-        multi_loss = self.loss_function_seg(pred, LP)
-        binary_loss = self.loss_function_seg(utils.add_softmax_labels(pred), mask)
-        total_loss_seg = binary_seg_weight * binary_loss + multi_seg_weight * multi_loss
-
-        return total_loss_seg, multi_loss, binary_loss
-
-    def get_input_classifier(self, img=None, segmenter=None):
-        """ Generates input tensor to classifier based on input_type_class parameter
-            Args:
-                img: original image tensor - default
-                segmenter: segmentation network
-            Returns torch tensor to be used as input to classifier
-        """
-        if self.input_type_class == "img" or not segmenter:
-            class_in = img
-        elif self.input_type_class == "multi":
-            class_in = torch.softmax(segmenter(img), dim=1)
-        elif self.input_type_class == "binary":
-            class_in = torch.softmax(segmenter(img), dim=1)
-            class_in = utils.add_softmax_labels(class_in)
-
-        return class_in
 
     def train_classifier(self,
                          classifier,
