@@ -67,17 +67,16 @@ class RunTrain(Trainer):
                     print("Increasing binary loss by 0.05 W=", binary_seg_weight)
 
                 iteration, losses_train, losses_valid, \
-                best_metrics_valid_seg, best_valid_loss = self.train_segmenter(
-                                                                                segmenter,
-                                                                                iteration,
-                                                                                epoch,
-                                                                                binary_seg_weight=binary_seg_weight,
-                                                                                multi_seg_weight=multi_seg_weight,
-                                                                                best_metrics_valid=best_metrics_valid_seg,
-                                                                                best_valid_loss=best_valid_loss,
-                                                                                losses_train=losses_train,
-                                                                                losses_valid=losses_valid,
-                                                                            )
+                best_metrics_valid_seg, best_valid_loss = self.train_segmenter(segmenter,
+                                                                               iteration,
+                                                                               epoch,
+                                                                               binary_seg_weight=binary_seg_weight,
+                                                                               multi_seg_weight=multi_seg_weight,
+                                                                               best_metrics_valid=best_metrics_valid_seg,
+                                                                               best_valid_loss=best_valid_loss,
+                                                                               losses_train=losses_train,
+                                                                               losses_valid=losses_valid,
+                                                                               )
                 epoch += 1
 
         elif self.experiment_type == "joint":
@@ -87,8 +86,7 @@ class RunTrain(Trainer):
                     print("Increasing binary loss by 0.05 W=", binary_seg_weight)
 
                 iteration, losses_train, losses_valid, \
-                best_metrics_valid_class, best_metrics_valid_seg = self.train_joint(
-                                                                                    classifier,
+                best_metrics_valid_class, best_metrics_valid_seg = self.train_joint(classifier,
                                                                                     segmenter,
                                                                                     iteration,
                                                                                     epoch,
@@ -99,7 +97,7 @@ class RunTrain(Trainer):
                                                                                     best_metrics_valid_class=best_metrics_valid_class,
                                                                                     losses_train=losses_train,
                                                                                     losses_valid=losses_valid,
-                                                                                )
+                                                                                    )
                 epoch += 1
 
     def train_classifier(self,
