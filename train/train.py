@@ -15,6 +15,93 @@ class RunTrain(Trainer):
         Inherits from utils Trainer class
     """
 
+    def train_experiment(self,
+                         iteration,
+                         max_iteration,
+                         epoch,
+                         losses_train,
+                         losses_valid,
+                         segmenter=None,
+                         best_valid_loss=None,
+                         best_metrics_valid_seg=None,
+                         binary_seg_weight=0,
+                         multi_seg_weight=1,
+                         classifier=None,
+                         best_metrics_valid_class=None,
+                         multi_task_weight=0
+                         ):
+        """ Performs training and validation until max_iterations is reached.
+            Experiment training based on parameter experiment_type
+            Args:
+                iteration: current training iteration (int)
+                max_iteration: maximum iteration to reach (int)
+                epoch: current training epoch (int)
+                losses_train: list of dicts containing training losses for each epoch (list)
+                losses_valid: list of dicts containing valid losses and metrics for each epoch (list)
+                segmenter: segmenter network (pytorch model)
+                best_valid_loss: minimum validation loss recorded (float)
+                best_metrics_valid_seg: the best segmentation dice on validation set (float)
+                binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
+                multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
+                classifier: classifier network (pytorch model)
+                best_metrics_valid_class: the best classifier accuracy on validation set (float)
+                multi_task_weight: weight for our multi-task framework (balance between class and seg loss) (float)
+        """
+
+        if self.experiment_type == "classify":
+            while iteration < max_iteration:
+                iteration, losses_train, losses_valid, \
+                best_metrics_valid_class, best_valid_loss = self.train_classifier(classifier,
+                                                                                  iteration,
+                                                                                  epoch,
+                                                                                  best_metrics_valid=best_metrics_valid_class,
+                                                                                  best_valid_loss=best_valid_loss,
+                                                                                  losses_valid=losses_valid,
+                                                                                  segmenter=segmenter
+                                                                                  )
+                epoch += 1
+        elif self.experiment_type == "segmenter":
+            while iteration < max_iteration:
+                if epoch % 50 == 0.0 and epoch > 0.0:
+                    binary_seg_weight += 0.05
+                    print("Increasing binary loss by 0.05 W=", binary_seg_weight)
+
+                iteration, losses_train, losses_valid, \
+                best_metrics_valid_seg, best_valid_loss = self.train_segmenter(
+                                                                                segmenter,
+                                                                                iteration,
+                                                                                epoch,
+                                                                                binary_seg_weight=binary_seg_weight,
+                                                                                multi_seg_weight=multi_seg_weight,
+                                                                                best_metrics_valid=best_metrics_valid_seg,
+                                                                                best_valid_loss=best_valid_loss,
+                                                                                losses_train=losses_train,
+                                                                                losses_valid=losses_valid,
+                                                                            )
+                epoch += 1
+
+        elif self.experiment_type == "joint":
+            while iteration < max_iteration:
+                if epoch % 50 == 0.0 and epoch > 0.0:
+                    binary_seg_weight += 0.05
+                    print("Increasing binary loss by 0.05 W=", binary_seg_weight)
+
+                iteration, losses_train, losses_valid, \
+                best_metrics_valid_class, best_metrics_valid_seg = self.train_joint(
+                                                                                    classifier,
+                                                                                    segmenter,
+                                                                                    iteration,
+                                                                                    epoch,
+                                                                                    binary_seg_weight=binary_seg_weight,
+                                                                                    multi_seg_weight=multi_seg_weight,
+                                                                                    multi_task_weight=multi_task_weight,
+                                                                                    best_metrics_valid_seg=best_metrics_valid_seg,
+                                                                                    best_metrics_valid_class=best_metrics_valid_class,
+                                                                                    losses_train=losses_train,
+                                                                                    losses_valid=losses_valid,
+                                                                                )
+                epoch += 1
+
     def train_classifier(self,
                          classifier,
                          iteration,
@@ -616,7 +703,6 @@ class RunTrain(Trainer):
             img, LP, mask, label = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"])
 
             with torch.no_grad():
-
                 # Pass through segmenter & loss computation
                 logit_map = segmenter(img)
                 total_loss_seg, multi_loss, binary_loss = self.compute_seg_loss(logit_map, mask, LP,
