@@ -4,7 +4,7 @@ from tqdm import tqdm
 from monai import transforms
 
 from train import train_utils as utils
-from train_utils import Trainer
+from train_utils import Trainer, cuda
 
 
 class RunTrain(Trainer):
@@ -48,7 +48,7 @@ class RunTrain(Trainer):
         )
 
         for batch in epoch_iterator:
-            img, label = (batch["image"].cuda(), batch["label"].cuda())
+            img, label = (cuda(batch["image"]), cuda(batch["label"]))
             class_in = self.get_input_classifier(img=img, segmenter=segmenter)
 
             # Pass through classifier, compute loss and backprop
@@ -159,7 +159,7 @@ class RunTrain(Trainer):
         loss_vals = list()
 
         for batch in epoch_iterator_val:
-            img, label = (batch["image"].cuda(), batch["label"].cuda())
+            img, label = (cuda(batch["image"]), cuda(batch["label"]))
 
             # Forward pass and validation loss computation
             with torch.no_grad():
@@ -673,3 +673,4 @@ class RunTrain(Trainer):
         utils.plot_losses_train(self.res_dir, losses_valid, 'metrics_valid_joint')
 
         return losses_valid, mean_dice_val, accuracy
+

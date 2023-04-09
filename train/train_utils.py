@@ -159,6 +159,14 @@ class Trainer:
         return class_in
 
 
+def get_in_channels_class(config):
+    if config['input_type_class']=='vol':
+        in_channels = 1
+    else:
+        in_channels = config['N_seg_labels']
+    return in_channels
+
+
 def add_softmax_labels(softmax_preds):
     """ Returns added multi-class foreground softmax predictions (background excluded)
         Assumes background in first channel
