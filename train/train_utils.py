@@ -27,6 +27,7 @@ class Trainer:
             input_type_class="multi",
             eval_num=1,
             gpu_device=0,
+            N_seg_labels=12
     ):
         """
         Args:
@@ -55,7 +56,8 @@ class Trainer:
                                 "img" = use input volume image
             eval_num: number of epochs between each validation loop (default 1) (int)
             gpu_device: gpu device num
-        """
+            N_seg_labels: number of segmentation labels
+            """
         super().__init__()
 
         self.optimizer_seg = optimizer_seg
@@ -73,6 +75,7 @@ class Trainer:
         self.lr_scheduler_seg = lr_scheduler_seg
         self.lr_scheduler_class = lr_scheduler_class
         self.gpu_device = gpu_device
+        self.N_seg_labels = N_seg_labels
 
         exp_names = ["segment", "classify", "joint", "LP"]
         in_class_names = ["multi", "binary", "img"]

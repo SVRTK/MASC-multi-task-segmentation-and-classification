@@ -2,9 +2,8 @@ from train.train import RunTrain
 from networks.prepare_networks import get_nets
 import os
 
-
-# TODO Dataloaders
 # TODO Inference and testing
+# TODO inference and testing loop in main
 # TODO Label propagation network
 # TODO LP training
 # TODO LP eval and inference
@@ -92,7 +91,8 @@ def train(config):
                         lr_scheduler_class=lr_scheduler_class,
                         input_type_class=config['input_type_class'],
                         eval_num=config['eval_num'],
-                        gpu_device=config['gpu_device']
+                        gpu_device=config['gpu_device'],
+                        N_seg_labels=config['N_seg_labels']
                         )
 
     # Train experiment

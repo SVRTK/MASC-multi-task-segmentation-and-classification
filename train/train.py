@@ -2,8 +2,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from monai import transforms
-
-from train import train_utils as utils
+import train_utils as utils
 from train_utils import Trainer, cuda
 
 
