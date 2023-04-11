@@ -1,6 +1,7 @@
 import torch
 from networks.losses import DiceCEsoft
 import torch.nn as nn
+import torch.nn.init as init
 import numpy as np
 
 
@@ -24,7 +25,8 @@ class Trainer:
             loss_function_seg=DiceCEsoft(),
             loss_function_class=nn.CrossEntropyLoss(),
             input_type_class="multi",
-            eval_num=1
+            eval_num=1,
+            gpu_device=0,
     ):
         """
         Args:
@@ -52,6 +54,7 @@ class Trainer:
                                 "binary" = use binary segmentation labels (add multi-class preds)
                                 "img" = use input volume image
             eval_num: number of epochs between each validation loop (default 1) (int)
+            gpu_device: gpu device num
         """
         super().__init__()
 
@@ -69,6 +72,7 @@ class Trainer:
         self.loss_function_seg = loss_function_seg
         self.lr_scheduler_seg = lr_scheduler_seg
         self.lr_scheduler_class = lr_scheduler_class
+        self.gpu_device = gpu_device
 
         exp_names = ["segment", "classify", "joint", "LP"]
         in_class_names = ["multi", "binary", "img"]
@@ -193,6 +197,49 @@ def cuda(xs, device_num=None):
         else:
             return [x.cuda() for x in xs]
 
+
+def init_weights(net):
+    """ Initialises the weights of a network
+        Args:
+            net: network to initialise weights (pytorch model)
+    """
+
+    def init_func(m):
+        classname = m.__class__.__name__
+
+        if hasattr(m, 'weight') and classname.find('Conv') != -1:
+            #init.kaiming_normal_(m.weight, mode='fan_out')
+            init.xavier_normal_(m.weight, gain=0.1)
+            if hasattr(m, 'bias') and m.bias is not None:
+                init.constant_(m.bias, 0.0)
+
+        elif hasattr(m, 'weight') and classname.find('Linear') != -1:
+            #init.kaiming_normal_(m.weight, mode='fan_out')
+            init.xavier_normal_(m.weight, gain=0.1)
+            if hasattr(m, 'bias') and m.bias is not None:
+                init.constant_(m.bias, 0.0)
+
+        elif (classname.find('BatchNorm') != -1) or (classname.find('GroupNorm') != -1):
+            init.constant_(m.weight, 1.0)
+            init.constant_(m.bias, 0.0)
+
+    print('Network initialized with xavier_normal_.')
+    net.apply(init_func)
+
+
+def init_network(net, gpu_ids=[]):
+    """ Initialise network (send to device and initialise weights)
+        Args:
+            net: network to initialise and send to device (pytorch model)
+            gpu_ids: gpu ID numbers to be used
+
+    """
+    if len(gpu_ids) > 0:
+        assert (torch.cuda.is_available())
+        net.cuda(gpu_ids[0])
+        net = torch.nn.DataParallel(net, gpu_ids)
+    init_weights(net)
+    return net
 
 def save_checkpoint(ckpt_name,
                     ckpt_dir,

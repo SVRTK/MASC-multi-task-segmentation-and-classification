@@ -134,7 +134,8 @@ class RunTrain(Trainer):
         )
 
         for batch in epoch_iterator:
-            img, label = (cuda(batch["image"]), cuda(batch["label"]))
+            img, label = (cuda(batch["image"], device_num=self.gpu_device),
+                          cuda(batch["label"], device_num=self.gpu_device))
             class_in = self.get_input_classifier(img=img, segmenter=segmenter)
 
             # Pass through classifier, compute loss and backprop
@@ -236,7 +237,8 @@ class RunTrain(Trainer):
         metric_count = 0
 
         for batch in epoch_iterator_val:
-            img, label = (cuda(batch["image"]), cuda(batch["label"]))
+            img, label = (cuda(batch["image"], device_num=self.gpu_device),
+                          cuda(batch["label"], device_num=self.gpu_device))
 
             # Forward pass and validation loss computation
             with torch.no_grad():
@@ -297,7 +299,9 @@ class RunTrain(Trainer):
         )
 
         for batch in epoch_iterator:
-            img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
+            img, LP, mask = (cuda(batch["image"], device_num=self.gpu_device),
+                             cuda(batch["LP"], device_num=self.gpu_device),
+                             cuda(batch["mask"], device_num=self.gpu_device))
 
             # Forward pass, segmentation loss function computation and backprop
             logit_map = segmenter(img)
@@ -400,7 +404,9 @@ class RunTrain(Trainer):
         dice_vals = list()
 
         for batch in epoch_iterator_val:
-            img, LP, mask = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda())
+            img, LP, mask = (cuda(batch["image"], device_num=self.gpu_device),
+                             cuda(batch["LP"], device_num=self.gpu_device),
+                             cuda(batch["mask"], device_num=self.gpu_device))
 
             # Forward pass and loss computation
             with torch.no_grad():
@@ -490,8 +496,10 @@ class RunTrain(Trainer):
         )
 
         for batch in epoch_iterator:
-            img, LP, mask, label = (
-                batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"].cuda())
+            img, LP, mask, label = (cuda(batch["image"], device_num=self.gpu_device),
+                                    cuda(batch["LP"], device_num=self.gpu_device),
+                                    cuda(batch["mask"], device_num=self.gpu_device),
+                                    cuda(batch["label"], device_num=self.gpu_device))
 
             # Pass through segmenter & segmenter loss computation
             logit_map = segmenter(img)
@@ -628,7 +636,7 @@ class RunTrain(Trainer):
                 )
 
         return iteration, losses_train_seg, losses_valid_seg, \
-               losses_train_class, losses_valid_class,\
+               losses_train_class, losses_valid_class, \
                best_metrics_valid_class, best_metrics_valid_seg
 
     def valid_joint(self,
@@ -668,7 +676,10 @@ class RunTrain(Trainer):
         metric_count = 0
 
         for batch in epoch_iterator_val:
-            img, LP, mask, label = (batch["image"].cuda(), batch["LP"].cuda(), batch["mask"].cuda(), batch["label"])
+            img, LP, mask, label = (cuda(batch["image"], device_num=self.gpu_device),
+                                    cuda(batch["LP"], device_num=self.gpu_device),
+                                    cuda(batch["mask"], device_num=self.gpu_device),
+                                    cuda(batch["label"], device_num=self.gpu_device))
 
             with torch.no_grad():
                 # Pass through segmenter & loss computation

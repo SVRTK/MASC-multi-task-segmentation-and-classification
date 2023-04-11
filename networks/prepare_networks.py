@@ -37,15 +37,16 @@ def get_nets(config):
 
     # Load and define only required networks
     if config['input_type_class'] != 'img':
-        segmenter = train_utils.cuda(AttentionUnet(spatial_dims=config['spatial_dims'],
-                                                   in_channels=1,
-                                                   out_channels=config['N_seg_labels'],
-                                                   channels=config['chann_segnet'],
-                                                   strides=config['strides_segnet'],
-                                                   kernel_size=config['ksize_segnet'],
-                                                   up_kernel_size=config['up_ksize_segnet'],
-                                                   dropout=config['dropout_seg']))
+        segmenter = AttentionUnet(spatial_dims=config['spatial_dims'],
+                                  in_channels=1,
+                                  out_channels=config['N_seg_labels'],
+                                  channels=config['chann_segnet'],
+                                  strides=config['strides_segnet'],
+                                  kernel_size=config['ksize_segnet'],
+                                  up_kernel_size=config['up_ksize_segnet'],
+                                  dropout=config['dropout_seg'])
 
+        segmenter = train_utils.init_network(segmenter, [config['gpu_ids']])
         optimizer_seg = torch.optim.AdamW(segmenter.parameters(),
                                           lr=config['lr_seg'],
                                           weight_decay=config['weight_decay_seg'])
@@ -72,6 +73,8 @@ def get_nets(config):
                                                   in_channels=in_channels_class,
                                                   out_channels=config['N_diagnosis'],
                                                   dropout_prob=config['dropout_class']))
+
+        classifier = train_utils.init_network(classifier, [config['gpu_ids']])
 
         optimizer_class = torch.optim.AdamW(classifier.parameters(),
                                             lr=config['lr_class'],

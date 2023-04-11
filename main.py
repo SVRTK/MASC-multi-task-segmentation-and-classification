@@ -2,8 +2,8 @@ from train.train import RunTrain
 from networks.prepare_networks import get_nets
 import os
 
-# TODO Document get_nets and train in main funcs & comments
 # TODO Add in network init
+# TODO parametrize cuda
 # TODO Dataloaders
 # TODO Inference and testing
 # TODO Label propagation network
@@ -32,6 +32,7 @@ CONFIG = {
     'eval_num': 3,
     'max_iterations': 10000,
     'batch_size': 12,
+    'gpu_ids': 0,
 
     # Classifier parameters
     'dropout_class': 0.2,
@@ -88,7 +89,8 @@ def train(config):
                         lr_scheduler_seg=lr_scheduler_seg,
                         lr_scheduler_class=lr_scheduler_class,
                         input_type_class=config['input_type_class'],
-                        eval_num=config['eval_num']
+                        eval_num=config['eval_num'],
+                        gpu_device=config['gpu_device']
                         )
 
     # Train experiment
