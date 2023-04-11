@@ -14,6 +14,11 @@ def get_nets(config):
 
     losses_train_init_class, losses_valid_init_class = [], []
     losses_train_init_seg, losses_valid_init_seg = [], []
+    binary_seg_weight = config['binary_seg_weight']
+    best_metric_seg = 1e-5
+    best_metric_class = 1e-5
+    iteration = 0
+    epoch = 0
 
     max_epoch = config['max_iterations'] / config['batch_size']
 
@@ -76,8 +81,8 @@ def get_nets(config):
             iteration = iteration_class
             epoch = epoch_class
 
-    return segmenter, optimizer_seg, lr_scheduler_seg,\
-           classifier, optimizer_class, lr_scheduler_class,\
-           iteration, epoch, max_epoch,\
-           losses_train_init_seg, losses_valid_init_seg, \
-           losses_train_init_class, losses_valid_init_class
+    return segmenter, optimizer_seg, lr_scheduler_seg, \
+           classifier, optimizer_class, lr_scheduler_class, \
+           iteration, epoch, max_epoch, \
+           losses_train_init_seg, losses_valid_init_seg, best_metric_seg, binary_seg_weight, \
+           losses_train_init_class, losses_valid_init_class, best_metric_class
