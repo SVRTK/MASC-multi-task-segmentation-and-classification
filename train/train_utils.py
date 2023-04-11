@@ -255,7 +255,7 @@ def load_checkpoint(ckpt_path, map_location=None):
     return ckpt
 
 
-def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None):
+def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load_wbin=False):
     """ Checks if model has been previously checkpointed, and if so load model weights and losses
         Args: 
             ckpt_dir: directory where checkpoint is saved (str)
@@ -263,6 +263,7 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None):
             model: model to load weights onto (pytorch model)
             optimizer: optimizer for loading state dict (pytorch model)
             lr_scheduler: learning rate scheduler for loading state dict (pytorch learning rate scheduler)
+            load_wbin: whether to load binary segmentation loss weight - useful for increasing weight during training (bool)
     :return: 
     """
 
@@ -277,6 +278,11 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None):
         loss_val_best = ckpt['best_loss']
         iteration = ckpt['iteration']
         epoch = ckpt['epoch']
+        binary_seg_weight = None
+
+        if load_wbin:
+            binary_seg_weight = ckpt['binary_seg_weight']
+
         if lr_scheduler:
             lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
     except:
@@ -287,8 +293,9 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None):
         loss_val_best = 1e5
         iteration = 0
         epoch = 0
+        binary_seg_weight = None
 
-    return losses_train_init_class, losses_valid_init_class, best_metric, loss_val_best, iteration, epoch
+    return losses_train_init_class, losses_valid_init_class, best_metric, loss_val_best, iteration, epoch, binary_seg_weight
 
 
 class LambdaLR():

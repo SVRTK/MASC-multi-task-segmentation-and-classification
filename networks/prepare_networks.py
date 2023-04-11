@@ -4,7 +4,6 @@ import torch
 
 
 def get_nets(config):
-
     # Define empty networks
     segmenter = None
     optimizer_seg = None
@@ -40,11 +39,14 @@ def get_nets(config):
         # Check if model has been pretrained, and load weights and losses
         losses_train_init_seg, losses_valid_init_seg, \
         best_metric_seg, loss_val_best_seg, \
-        iteration, epoch = train_utils.try_load_ckpt(config['ckpt_dir'],
-                                                     config['ckpt_name_seg'],
-                                                     segmenter,
-                                                     optimizer_seg,
-                                                     lr_scheduler_seg=lr_scheduler_seg)
+        iteration, epoch, binary_seg_weight = train_utils.try_load_ckpt(config['ckpt_dir'],
+                                                                        config['ckpt_name_seg'],
+                                                                        segmenter,
+                                                                        optimizer_seg,
+                                                                        lr_scheduler_seg=lr_scheduler_seg,
+                                                                        load_wbin=True)
+        if not binary_seg_weight:
+            binary_seg_weight = config['binary_seg_weight']
 
     if config['experiment_type'] == "classify" or "joint":
         in_channels_class = train_utils.get_in_channels_class(config)
@@ -64,19 +66,18 @@ def get_nets(config):
         # Check if model has been pretrained, and load weights and losses
         losses_train_init_class, losses_valid_init_class, \
         best_metric_class, loss_val_best_class, \
-        iteration_class, epoch_class = train_utils.try_load_ckpt(config['ckpt_dir'],
-                                                                 config['ckpt_name_class'],
-                                                                 classifier,
-                                                                 optimizer_class,
-                                                                 lr_scheduler_class=lr_scheduler_class)
+        iteration_class, epoch_class, _ = train_utils.try_load_ckpt(config['ckpt_dir'],
+                                                                    config['ckpt_name_class'],
+                                                                    classifier,
+                                                                    optimizer_class,
+                                                                    lr_scheduler_class=lr_scheduler_class)
 
         if config['experiment_type'] == 'classify':
             iteration = iteration_class
             epoch = epoch_class
 
-    return (segmenter, optimizer_seg, lr_scheduler_seg,
-            classifier, optimizer_class, lr_scheduler_class,
-            iteration, epoch, max_epoch, losses_train_init_seg,
-            losses_valid_init_seg)
-
-
+    return segmenter, optimizer_seg, lr_scheduler_seg,\
+           classifier, optimizer_class, lr_scheduler_class,\
+           iteration, epoch, max_epoch,\
+           losses_train_init_seg, losses_valid_init_seg, \
+           losses_train_init_class, losses_valid_init_class
