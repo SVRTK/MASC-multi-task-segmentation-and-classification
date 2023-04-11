@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from monai import transforms
-from monai.metrics import compute_meandice, compute_hausdorff_distance, compute_average_surface_distance, DiceMetric, \
-    compute_roc_auc, get_confusion_matrix, compute_confusion_matrix_metric
+from monai.metrics import compute_meandice, compute_hausdorff_distance, compute_average_surface_distance, \
+    get_confusion_matrix, compute_confusion_matrix_metric
 import train_utils as utils
 from train_utils import Trainer, cuda
 import os
@@ -23,9 +23,6 @@ class RunTest(Trainer):
         model.eval()
         post_label = transforms.AsDiscrete(to_onehot=self.N_seg_labels)
         post_label_binary = transforms.AsDiscrete(to_onehot=2)
-        post_pred = transforms.AsDiscrete(argmax=True, to_onehot=self.N_seg_labels)
-        argmax_only = transforms.AsDiscrete(argmax=True, to_onehot=self.N_seg_labels)
-
         test_sub_metrics = []
 
         for x in range(len(test_files)):
@@ -41,7 +38,6 @@ class RunTest(Trainer):
 
                 img = test_ds[case_num]["image"]
                 label = test_ds[case_num]["mask"]
-                cond = int(test_ds[case_num]["label"])
 
                 # Send to device, add batch size, and forward pass
                 val_labels = cuda(label, device_num=self.gpu_device)
