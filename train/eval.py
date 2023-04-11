@@ -12,10 +12,6 @@ import csv
 import nibabel as nib
 import matplotlib.pyplot as plt
 
-# TODO: test class
-# TODO: infer seg
-# TODO: infer class
-
 
 # Testing loop
 class RunTest(Trainer):
@@ -26,6 +22,12 @@ class RunTest(Trainer):
     """
 
     def test_segmenter(self, model, test_files, test_ds):
+        """ Performs testing on segmenter, and saves metrics (csv) and segmentation predictions in res_dir
+            Args:
+                model: segmenter model to be tested (pytorch model)
+                test_files: decathlon datalist test files (decathlon datalist)
+                test_ds: pytorch dataset containing test files (pytorch Dataset)
+        """
 
         model.eval()
         post_label = transforms.AsDiscrete(to_onehot=self.N_seg_labels)
@@ -93,10 +95,6 @@ class RunTest(Trainer):
                 #                          Multi-class metrics                       #
                 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
 
-                pred_names = ["Dice ROI", "HD95 ROI", "avg dist. ROI", "sensitivity ROI", "specificity ROI",
-                              "precision ROI", "casenum"]
-
-                # >> Multi-class labels
                 val_labels_multi = post_label(val_labels).unsqueeze(0)
                 val_outputs_multi = post_label(torch.argmax(val_outputs, dim=1).unsqueeze(0)).unsqueeze(0)
 
@@ -152,6 +150,13 @@ class RunTest(Trainer):
             writer.writerow(std_metrics)
 
     def test_classifier(self, model, test_files, test_ds, segmenter=None):
+        """ Performs testing on classifier. Metrics are saved in a csv in res_dir
+            Args:
+                model: classifier model for testings (pytorch model)
+                test_files: decathlon datalist testing files (decathlon datalist)
+                test_ds: pytorch dataset containing testing files (pytorch Dataset)
+                segmenter: segmenter model to use for input to classifier (pytorch model)
+        """
 
         model.eval()
         y_true, y_preds, y_preds_softmax = [], [], []
@@ -193,8 +198,6 @@ class RunTest(Trainer):
         # Convert labelled numbers to conditions
         y_preds_conds = list(map(utils.convert_num_to_cond, y_preds))
         y_true_conds = list(map(utils.convert_num_to_cond, y_true))
-        print("Y PREDS = {}, Y PREDS CONDS = {}".format(y_preds, y_preds_conds))
-        print("Y TRUE = {}, Y TRUE CONDS = {}".format(y_true, y_true_conds))
 
         # loop over dictionary keys and values
         for key, val in all_metrics_report.items():
@@ -227,7 +230,45 @@ class RunTest(Trainer):
             plt.savefig(self.res_dir + '/' + str(labels[ind]) + '_confusion_matrix.eps', format='eps')
             plt.show()
 
-        return 0
+    def infer(self, model, test_files, test_ds, classifier=None):
+        """ Performs inference on segmenter and classifier.
+            Segmentation predictions are saved in res_dir, with predicted label in the filename
+            Args:
+                model: segmenter model for inference (pytorch model)
+                test_files: decathlon datalist inference files (decathlon datalist)
+                test_ds: pytorch dataset containing inference files (pytorch Dataset)
+                classifier: classifier model (pytorch model)
+        """
+
+        model.eval()
+        post_label = transforms.AsDiscrete(to_onehot=self.N_seg_labels)
+
+        for x in range(len(test_files)):
+
+            case_num = x
+            img_name = test_files[case_num]["image"]
+            case_name = os.path.split(test_ds[case_num]["image_meta_dict"]["filename_or_obj"])[1]
 
 
+            img_tmp_info = nib.load(img_name)
 
+            with torch.no_grad():
+
+                img = test_ds[case_num]["image"]
+                # Send to device, add batch size, and forward pass
+                val_inputs = torch.unsqueeze(cuda(img, device_num=self.gpu_device), 1)
+                val_outputs = model(val_inputs)
+
+                if classifier:
+                    class_in = self.get_input_classifier(img=val_inputs, segmenter=model)
+
+                    with torch.no_grad():
+                        logits = classifier(class_in)
+                        class_out = logits.argmax(dim=1)
+                        class_out = utils.convert_num_to_cond(val_outputs.item())
+
+                out_name = self.res_dir + "/cnn-lab-" + class_out + "-" + case_name
+                # Save the prediction
+                out_label = torch.argmax(val_outputs, dim=1).detach().cpu()[0, ...]
+                out_lab_nii = nib.Nifti1Image(out_label, img_tmp_info.affine, img_tmp_info.header)
+                nib.save(out_lab_nii, out_name)
