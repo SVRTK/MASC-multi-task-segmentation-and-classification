@@ -19,6 +19,8 @@ CONFIG = {
     # Directories & filenames
     'ckpt_dir': './Checkpoints/',
     'res_dir': './Results/',
+    'data_dir': '/Data/',
+    'data_JSON_file': 'data.json',
     'ckpt_name_seg': 'latest_segmenter',
     'ckpt_name_class': 'latest_classifier',
 
@@ -26,6 +28,7 @@ CONFIG = {
     'experiment_type': 'joint',
     'input_type_class': 'multi',
     'training': True,
+    'infer': True,
 
     # Experiment parameters
     'eval_num': 3,
