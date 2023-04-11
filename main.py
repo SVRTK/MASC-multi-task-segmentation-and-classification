@@ -1,4 +1,3 @@
-from train import train_utils
 from train.train import RunTrain
 from networks.prepare_networks import get_nets
 import os
@@ -8,7 +7,7 @@ import os
 # TODO IMPORT REQUIRED MODULES
 # TODO DEFINE DATALOADERS
 
-config = {
+CONFIG = {
     # Directories & filenames
     'ckpt_dir': './Checkpoints/',
     'res_dir': './Results/',
@@ -40,6 +39,7 @@ config = {
     'up_ksize_segnet': 3,
     'binary_seg_weight': 1,
     'multi_seg_weight': 1,
+    'multi_task_weight': 14,
 
     # Data parameters
     'spatial_dims': 3,
@@ -49,7 +49,6 @@ config = {
 
 
 def train(config):
-
     # Make checkpoint and results dir
     if not os.path.isdir(config['ckpt_dir']):
         os.makedirs(config['ckpt_dir'])
@@ -61,28 +60,26 @@ def train(config):
     segmenter, optimizer_seg, lr_scheduler_seg, \
     classifier, optimizer_class, lr_scheduler_class, \
     iteration, epoch, max_epoch, \
-    losses_train_init_seg, losses_valid_init_seg,  best_metric_seg, binary_seg_weight,\
+    losses_train_init_seg, losses_valid_init_seg, best_metric_seg, binary_seg_weight, \
     losses_train_init_class, losses_valid_init_class, best_metric_class = get_nets(config)
 
     # Set up Trainer class
-    trainer = train_utils.Trainer(train_loader=None,
-                                  val_loader=None,
-                                  max_iterations=config['max_iterations'],
-                                  ckpt_dir=config['ckpt_dir'],
-                                  res_dir=config['res_dir'],
-                                  experiment_type=config['experiment_type'],
-                                  optimizer_seg=optimizer_seg,
-                                  optimizer_class=optimizer_class,
-                                  lr_scheduler_seg=lr_scheduler_seg,
-                                  lr_scheduler_class=lr_scheduler_class,
-                                  input_type_class=config['input_type_class'],
-                                  eval_num=config['eval_num']
-                                  )
+    runtrain = RunTrain(train_loader=None,
+                        val_loader=None,
+                        max_iterations=config['max_iterations'],
+                        ckpt_dir=config['ckpt_dir'],
+                        res_dir=config['res_dir'],
+                        experiment_type=config['experiment_type'],
+                        optimizer_seg=optimizer_seg,
+                        optimizer_class=optimizer_class,
+                        lr_scheduler_seg=lr_scheduler_seg,
+                        lr_scheduler_class=lr_scheduler_class,
+                        input_type_class=config['input_type_class'],
+                        eval_num=config['eval_num']
+                        )
 
     # Train experiment
     if config['training']:
-        runtrain = RunTrain(trainer)
-
         runtrain.train_experiment(iteration,
                                   max_epoch,
                                   epoch,
@@ -96,10 +93,9 @@ def train(config):
                                   losses_train_class=losses_train_init_class,
                                   losses_valid_class=losses_valid_init_class,
                                   best_metrics_valid_class=best_metric_class,
-                                  multi_task_weight=config['multi_seg_weight']
+                                  multi_task_weight=config['multi_task_weight']
                                   )
 
 
 if __name__ == '__main__':
-    train(config)
-
+    train(CONFIG)
