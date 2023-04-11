@@ -88,31 +88,20 @@ class Trainer:
 
         """
         metrics_train_seg = {
-            'total_train_loss': [],
-            'multi_train_loss': [],
-            'binary_train_loss': []
+            'total_train_loss_seg': [],
+            'multi_train_loss_seg': [],
+            'binary_train_loss_seg': []
         }
         metrics_valid_seg = {
             'dice_valid': [],
-            'multi_valid_loss': [],
-            'binary_valid_loss': []
+            'multi_valid_loss_seg': [],
+            'binary_valid_loss_seg': []
         }
-        metrics_train_class = {'total_train_loss': []}
-        metrics_valid_class = {'total_valid_loss': [], 'accuracy': []}
+        metrics_train_class = {'total_train_loss_class': []}
+        metrics_valid_class = {'total_valid_loss_class': [], 'accuracy': []}
 
-        metrics_train_joint = {
-            'total_train_loss_seg': [],
-            'multi_train_loss': [],
-            'binary_train_loss': [],
-            'total_loss': []
-        }
-        metrics_valid_joint = {
-            'dice_valid': [],
-            'binary_valid_loss': [],
-            'multi_valid_loss': [],
-            'total_valid_loss': [],
-            'accuracy': [],
-        }
+        metrics_train_joint = [metrics_train_seg, metrics_train_class]
+        metrics_valid_joint = [metrics_valid_seg, metrics_valid_class]
 
         if self.experiment_type == "classify":
             return metrics_train_class if training else metrics_valid_class
@@ -213,8 +202,6 @@ def save_checkpoint(ckpt_name,
                     epoch=None,
                     losses_train=None,
                     losses_valid=None,
-                    losses_train_joint=None,
-                    losses_valid_joint=None,
                     lr_scheduler=None,
                     binary_seg_weight=None,
                     multi_seg_weight=None,
@@ -231,12 +218,9 @@ def save_checkpoint(ckpt_name,
             epoch: latest epoch (int)
             losses_train: list of dictionaries containing training losses (list)
             losses_valid: list of dictionaries containing valid losses (list)
-            losses_train_joint: list of dictionaries containing joint training losses (list)
-            losses_valid_joint: list of dictionaries containing joint valid losses (list)
             lr_scheduler: learning rate scheduler (pytorch LR scheduler)
             binary_seg_weight: weight for binary loss (manual labels and joined pred labels) (float)
             multi_seg_weight: weight for multi-class loss (LP and pred labels) (float)
-            multi_task_weight: weight for our multi-task framework (balance between class and seg loss) (float)
             best_valid_loss: the best mean validation loss (float)
             best_metric_valid: the best mean validation metric (float)
     """
@@ -248,7 +232,6 @@ def save_checkpoint(ckpt_name,
 
     ckpt_dict = {'model': model, 'optimizer': optimizer, 'iteration': iteration,
                  'epoch': epoch, 'losses_train': losses_train, 'losses_valid': losses_valid,
-                 'losses_train_joint': losses_train_joint, 'losses_valid_joint': losses_valid_joint,
                  'lr_scheduler': lr_scheduler, 'binary_seg_weight': binary_seg_weight,
                  'multi_seg_weight': multi_seg_weight, 'best_valid_loss': best_valid_loss,
                  'best_metric_valid': best_metric_valid}
