@@ -425,3 +425,21 @@ def plot_losses_train(res_dir, losses_train, title_plot):
     plt.savefig(res_dir + '/' + title_plot + '.eps',
                 format='eps', bbox_inches='tight', transparent=True)
     plt.close()
+
+
+def convert_num_to_cond(x):
+    """ Converts numbered 0, 1, 2 to labelled CoA, RAA and DAA
+        Args:
+            x: input label to be converted (int)
+        Returns:
+            Anomaly label (str)
+    """
+    if x == 0.0:
+        z = "CoA"
+    elif x == 1.0:
+        z = "RAA"
+    elif x == 2.0:
+        z = "DAA"
+    else:
+        raise Exception("Not a valid label, should be an int between 0 and 2")
+    return z
