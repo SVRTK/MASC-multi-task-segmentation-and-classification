@@ -2,8 +2,7 @@ from train.train import RunTrain
 from networks.prepare_networks import get_nets
 import os
 
-# TODO Add in network init
-# TODO parametrize cuda
+
 # TODO Dataloaders
 # TODO Inference and testing
 # TODO Label propagation network
