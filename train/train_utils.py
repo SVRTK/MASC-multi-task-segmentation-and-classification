@@ -184,6 +184,21 @@ def add_softmax_labels(softmax_preds):
     return added_preds
 
 
+def add_labels(A):
+    """ Returns a binary segmentation from a multi-class input
+        Sets all values greater than 1.0 to 1.0
+        Args:
+            A: tensor or array to be binarized (torch tensor/numpy array)
+        Returns:
+            binarized tensor/array
+    """
+    try:
+        z = torch.clone(A)
+    except:
+        z = np.copy(A)
+    z[A != 0.0] = 1.0
+    return z
+
 def cuda(xs, device_num=None):
     """ Sends torch tensor to cuda device
         Args:
