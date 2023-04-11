@@ -2,10 +2,19 @@ from train.train import RunTrain
 from networks.prepare_networks import get_nets
 import os
 
-# TODO READ CONFIG FILE
-# TODO IMPLEMENT A DEFAULT CONFIG
-# TODO IMPORT REQUIRED MODULES
-# TODO DEFINE DATALOADERS
+# TODO Document get_nets and train in main funcs & comments
+# TODO Add in network init
+# TODO Dataloaders
+# TODO Inference and testing
+# TODO Label propagation network
+# TODO LP training
+# TODO LP eval and inference
+# TODO argparsing and reading config file
+# TODO check everything is documented
+# TODO Test all loops, that it trains correctly
+# TODO Add a ReadME
+# TODO Requirements.txt
+# TODO setup.py
 
 CONFIG = {
     # Directories & filenames
@@ -49,6 +58,10 @@ CONFIG = {
 
 
 def train(config):
+    """ Runs training from config file
+        Args:
+            config: dictionary (main config file) with experiment parameter info (dict)
+    """
     # Make checkpoint and results dir
     if not os.path.isdir(config['ckpt_dir']):
         os.makedirs(config['ckpt_dir'])

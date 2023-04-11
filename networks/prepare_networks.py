@@ -4,6 +4,19 @@ import torch
 
 
 def get_nets(config):
+    """ Defines required networks, optimizers, and loads pre-trained weights and losses
+        Args:
+            config: dictionary (main config file) with experiment parameter info (dict)
+        Returns:
+            segmenter, segmenter optimizer and LR scheduler
+            classifier, classifier optimizer and LR scheduler
+            iteration, epoch, maximum epoch,
+            segmentation training and validation losses list of dicts,
+            best segmentation dice, latest binary segmentation loss weight,
+            classifier training and validation losses list of dicts,
+            best classifier accuracy
+    """
+
     # Define empty networks
     segmenter = None
     optimizer_seg = None
