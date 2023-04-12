@@ -21,6 +21,20 @@ class RunTest(Trainer):
         Inherits from utils Trainer class
     """
 
+    def test_experiment(self, test_files, test_ds, segmenter=None, classifier=None):
+        """ Runs testing depending on experiment type (classifier, or segmenter, or both)
+            Args:
+                test_files: decathlon datalist test files (decathlon datalist)
+                test_ds: pytorch dataset containing test files (pytorch Dataset)
+                segmenter: segmenter model to be tested (pytorch model)
+                classifier: classifier model to be tested (pytorch model)
+
+        """
+        if self.experiment_type == "segment" or "joint":
+            self.test_segmenter(model=segmenter, test_files=test_files, test_ds=test_ds)
+        if self.experiment_type == "classify" or "joint":
+            self.test_classifier(model=classifier, test_files=test_files, test_ds=test_ds)
+
     def test_segmenter(self, model, test_files, test_ds):
         """ Performs testing on segmenter, and saves metrics (csv) and segmentation predictions in res_dir
             Args:
