@@ -20,6 +20,7 @@ class RunTest(Trainer):
 
         Inherits from utils Trainer class
     """
+    super().__init__()
 
     def test_experiment(self, test_files, test_ds, segmenter=None, classifier=None):
         """ Runs testing depending on experiment type (classifier, or segmenter, or both)

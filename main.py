@@ -1,14 +1,11 @@
 from train.train import RunTrain
+from train.eval import RunTest
 from networks.prepare_networks import get_nets
 from data.dataloaders import get_dataloaders
 import os
 
-# TODO inference and testing loop in main
-# TODO Label propagation network
-# TODO LP training
-# TODO LP eval and inference
+# TODO get rid of LP from experiments
 # TODO argparsing and reading config file
-# TODO check everything is documented
 # TODO Test all loops, that it trains correctly
 # TODO Add a ReadME
 # TODO Requirements.txt
@@ -81,25 +78,24 @@ def run_experiment(config):
     # Get dataloaders
     train_loader, val_loader, test_ds, test_files = get_dataloaders(config)
 
-    # Set up Trainer class
-    runtrain = RunTrain(train_loader=train_loader,
-                        val_loader=val_loader,
-                        max_iterations=config['max_iterations'],
-                        ckpt_dir=config['ckpt_dir'],
-                        res_dir=config['res_dir'],
-                        experiment_type=config['experiment_type'],
-                        optimizer_seg=optimizer_seg,
-                        optimizer_class=optimizer_class,
-                        lr_scheduler_seg=lr_scheduler_seg,
-                        lr_scheduler_class=lr_scheduler_class,
-                        input_type_class=config['input_type_class'],
-                        eval_num=config['eval_num'],
-                        gpu_device=config['gpu_device'],
-                        N_seg_labels=config['N_seg_labels']
-                        )
-
     # Train experiment
     if config['training']:
+        # Set up Trainer class
+        runtrain = RunTrain(train_loader=train_loader,
+                            val_loader=val_loader,
+                            max_iterations=config['max_iterations'],
+                            ckpt_dir=config['ckpt_dir'],
+                            res_dir=config['res_dir'],
+                            experiment_type=config['experiment_type'],
+                            optimizer_seg=optimizer_seg,
+                            optimizer_class=optimizer_class,
+                            lr_scheduler_seg=lr_scheduler_seg,
+                            lr_scheduler_class=lr_scheduler_class,
+                            input_type_class=config['input_type_class'],
+                            eval_num=config['eval_num'],
+                            gpu_device=config['gpu_device'],
+                            N_seg_labels=config['N_seg_labels']
+                            )
         runtrain.train_experiment(iteration,
                                   max_epoch,
                                   epoch,
@@ -116,13 +112,28 @@ def run_experiment(config):
                                   multi_task_weight=config['multi_task_weight']
                                   )
 
-
     # Run testing
-    runtrain.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
+    runtest = RunTest(train_loader=train_loader,
+                      val_loader=val_loader,
+                      max_iterations=config['max_iterations'],
+                      ckpt_dir=config['ckpt_dir'],
+                      res_dir=config['res_dir'],
+                      experiment_type=config['experiment_type'],
+                      optimizer_seg=optimizer_seg,
+                      optimizer_class=optimizer_class,
+                      lr_scheduler_seg=lr_scheduler_seg,
+                      lr_scheduler_class=lr_scheduler_class,
+                      input_type_class=config['input_type_class'],
+                      eval_num=config['eval_num'],
+                      gpu_device=config['gpu_device'],
+                      N_seg_labels=config['N_seg_labels']
+                      )
+
+    runtest.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
 
     # Run inference
     if config['inference']:
-        runtrain.infer(model=segmenter, test_files=test_files, test_ds=test_ds, classifier=classifier)
+        runtest.infer(model=segmenter, test_files=test_files, test_ds=test_ds, classifier=classifier)
 
 
 if __name__ == '__main__':
