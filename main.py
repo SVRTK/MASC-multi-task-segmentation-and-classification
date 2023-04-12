@@ -59,7 +59,7 @@ CONFIG = {
 }
 
 
-def train(config):
+def run_experiment(config):
     """ Runs training from config file
         Args:
             config: dictionary (main config file) with experiment parameter info (dict)
@@ -121,7 +121,9 @@ def train(config):
     runtrain.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
 
     # Run inference
+    if config['inference']:
+        runtrain.infer(model=segmenter, test_files=test_files, test_ds=test_ds, model=segmenter, classifier=classifier)
 
 
 if __name__ == '__main__':
-    train(CONFIG)
+    run_experiment(CONFIG)
