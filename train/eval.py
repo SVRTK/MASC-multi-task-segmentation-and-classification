@@ -5,8 +5,8 @@ from monai.metrics import compute_meandice, compute_hausdorff_distance, compute_
     get_confusion_matrix, compute_confusion_matrix_metric
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, multilabel_confusion_matrix, \
     classification_report, balanced_accuracy_score
-import train_utils as utils
-from train_utils import Trainer, cuda
+import train.train_utils as utils
+from train.train_utils import Trainer, cuda
 import os
 import csv
 import nibabel as nib
