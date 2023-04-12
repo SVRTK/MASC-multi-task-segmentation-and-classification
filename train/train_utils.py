@@ -41,7 +41,6 @@ class Trainer:
                                     "segment" (only train segmenter),
                                     "classify" (only train classifier),
                                     "joint" (multi-task joint classifier + segmenter)
-                                    "LP" (VoxelMorph Label Propagation)
                             default "segment"
             optimizer_seg: segmentation network optimizer (pytorch model)
             optimizer_class: classifier network optimizer (pytorch model) 
@@ -77,7 +76,7 @@ class Trainer:
         self.gpu_device = gpu_device
         self.N_seg_labels = N_seg_labels
 
-        exp_names = ["segment", "classify", "joint", "LP"]
+        exp_names = ["segment", "classify", "joint"]
         in_class_names = ["multi", "binary", "img"]
 
         if self.experiment_type not in exp_names:
