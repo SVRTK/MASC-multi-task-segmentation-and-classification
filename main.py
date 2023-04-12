@@ -3,56 +3,8 @@ from train.eval import RunTest
 from networks.prepare_networks import get_nets
 from data.dataloaders import get_dataloaders
 import os
-
-# TODO argparsing and reading config file
-# TODO Test all loops, that it trains correctly
-# TODO Add a ReadME
-# TODO Requirements.txt
-# TODO setup.py
-
-CONFIG = {
-    # Directories & filenames
-    'ckpt_dir': './Checkpoints/',
-    'res_dir': './Results/',
-    'data_dir': '/Data/',
-    'data_JSON_file': 'data.json',
-    'ckpt_name_seg': 'latest_segmenter',
-    'ckpt_name_class': 'latest_classifier',
-
-    # Experiment types
-    'experiment_type': 'joint',
-    'input_type_class': 'multi',
-    'training': True,
-    'infer': True,
-
-    # Experiment parameters
-    'eval_num': 3,
-    'max_iterations': 10000,
-    'batch_size': 12,
-    'gpu_ids': 0,
-
-    # Classifier parameters
-    'dropout_class': 0.2,
-    'lr_class': 1e-4,
-    'weight_decay_class': 1e-5,
-
-    # Segmenter parameters
-    'dropout_seg': 0.2,
-    'lr_seg': 1e-3,
-    'weight_decay_seg': 1e-5,
-    'chann_segnet': (32, 64, 128, 256, 512),
-    'strides_segnet': (2, 2, 2, 2),
-    'ksize_segnet': 3,
-    'up_ksize_segnet': 3,
-    'binary_seg_weight': 1,
-    'multi_seg_weight': 1,
-    'multi_task_weight': 14,
-
-    # Data parameters
-    'spatial_dims': 3,
-    'N_diagnosis': 3,
-    'N_seg_labels': 12
-}
+import argparse
+import yaml
 
 
 def run_experiment(config):
@@ -136,4 +88,57 @@ def run_experiment(config):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", help="config file (.yaml) containing experiment parameters and directories")
+    args = parser.parse_args()
+    if args.config:
+        print('Reading config file')
+        with open(args.config) as cf_file:
+            CONFIG = yaml.safe_load(cf_file.read())
+
+    else:
+        print('Using default config parameters')
+        CONFIG = {
+            # Directories & filenames
+            'ckpt_dir': './Checkpoints/',
+            'res_dir': './Results/',
+            'data_dir': '/Data/',
+            'data_JSON_file': 'data.json',
+            'ckpt_name_seg': 'latest_segmenter',
+            'ckpt_name_class': 'latest_classifier',
+
+            # Experiment types
+            'experiment_type': 'joint',
+            'input_type_class': 'multi',
+            'training': True,
+            'infer': True,
+
+            # Experiment parameters
+            'eval_num': 3,
+            'max_iterations': 10000,
+            'batch_size': 12,
+            'gpu_ids': 0,
+
+            # Classifier parameters
+            'dropout_class': 0.2,
+            'lr_class': 1e-4,
+            'weight_decay_class': 1e-5,
+
+            # Segmenter parameters
+            'dropout_seg': 0.2,
+            'lr_seg': 1e-3,
+            'weight_decay_seg': 1e-5,
+            'chann_segnet': (32, 64, 128, 256, 512),
+            'strides_segnet': (2, 2, 2, 2),
+            'ksize_segnet': 3,
+            'up_ksize_segnet': 3,
+            'binary_seg_weight': 1,
+            'multi_seg_weight': 1,
+            'multi_task_weight': 14,
+
+            # Data parameters
+            'spatial_dims': 3,
+            'N_diagnosis': 3,
+            'N_seg_labels': 12
+        }
     run_experiment(CONFIG)
