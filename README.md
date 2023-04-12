@@ -154,4 +154,5 @@ The dataset information is read from a .JSON file, creating a Decathlon style da
 ```
 
 [1] Oktay, Ozan, et al. "Attention U-Net: Learning Where to Look for the Pancreas." Medical Imaging with Deep Learning.
+
 [2] Zhang, Zhengxin, Qingjie Liu, and Yunhong Wang. "Road extraction by deep residual u-net." IEEE Geoscience and Remote Sensing Letters 15.5 (2018): 749-753.
