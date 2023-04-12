@@ -52,4 +52,3 @@ class DiceCEsoft(torch.nn.Module):
         loss = self.weight_ce*celoss + self.weight_dice*diceloss
 
         return loss
-

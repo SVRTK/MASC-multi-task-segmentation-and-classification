@@ -13,8 +13,6 @@ class RunTrain(Trainer):
 
         Inherits from utils Trainer class
     """
-    super().__init__()
-
     def train_experiment(self,
                          iteration,
                          max_epoch,

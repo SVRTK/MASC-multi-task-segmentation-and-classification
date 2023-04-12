@@ -161,7 +161,7 @@ def get_in_channels_class(config):
         Returns:
             number of input classifier channels (int) 
     """
-    if config['input_type_class']=='vol':
+    if config['input_type_class'] == 'vol':
         in_channels = 1
     else:
         in_channels = config['N_seg_labels']
@@ -198,6 +198,7 @@ def add_labels(A):
     z[A != 0.0] = 1.0
     return z
 
+
 def cuda(xs, device_num=None):
     """ Sends torch tensor to cuda device
         Args:
@@ -225,13 +226,13 @@ def init_weights(net):
         classname = m.__class__.__name__
 
         if hasattr(m, 'weight') and classname.find('Conv') != -1:
-            #init.kaiming_normal_(m.weight, mode='fan_out')
+            # init.kaiming_normal_(m.weight, mode='fan_out')
             init.xavier_normal_(m.weight, gain=0.1)
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias, 0.0)
 
         elif hasattr(m, 'weight') and classname.find('Linear') != -1:
-            #init.kaiming_normal_(m.weight, mode='fan_out')
+            # init.kaiming_normal_(m.weight, mode='fan_out')
             init.xavier_normal_(m.weight, gain=0.1)
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias, 0.0)
@@ -257,6 +258,7 @@ def init_network(net, gpu_ids=[]):
         net = torch.nn.DataParallel(net, gpu_ids)
     init_weights(net)
     return net
+
 
 def save_checkpoint(ckpt_name,
                     ckpt_dir,
@@ -366,6 +368,7 @@ class LambdaLR():
     """ Computes the LR decay rate
     
     """
+
     def __init__(self, epochs, offset, decay_epoch):
         """
         Args: 
@@ -380,6 +383,7 @@ class LambdaLR():
     def step(self, epoch):
         return 1.0 - max(0, epoch + self.offset - self.decay_epoch) / (self.epochs - self.decay_epoch)
 
+
 def plot_losses_train(res_dir, losses_train, title_plot):
     """ Plots and saves the training/validation losses as .svg & .eps files
         Args:
@@ -389,7 +393,6 @@ def plot_losses_train(res_dir, losses_train, title_plot):
     """
     n_epochs_train = len(losses_train)
     keys_train = list(losses_train[0].keys())
-    n_iter_train = len(losses_train[0][keys_train[0]])
 
     # Average losses (over each epoch)
     losses_train_mean = {key_: [] for key_ in keys_train}
