@@ -62,7 +62,7 @@ def get_nets(config):
                                                                         config['ckpt_name_seg'],
                                                                         segmenter,
                                                                         optimizer_seg,
-                                                                        lr_scheduler_seg=lr_scheduler_seg,
+                                                                        lr_scheduler=lr_scheduler_seg,
                                                                         load_wbin=True)
         if not binary_seg_weight:
             binary_seg_weight = config['binary_seg_weight']
@@ -91,7 +91,7 @@ def get_nets(config):
                                                                     config['ckpt_name_class'],
                                                                     classifier,
                                                                     optimizer_class,
-                                                                    lr_scheduler_class=lr_scheduler_class)
+                                                                    lr_scheduler=lr_scheduler_class)
 
         if config['experiment_type'] == 'classify':
             iteration = iteration_class

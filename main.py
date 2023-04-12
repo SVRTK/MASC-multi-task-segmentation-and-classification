@@ -4,7 +4,6 @@ from networks.prepare_networks import get_nets
 from data.dataloaders import get_dataloaders
 import os
 
-# TODO get rid of LP from experiments
 # TODO argparsing and reading config file
 # TODO Test all loops, that it trains correctly
 # TODO Add a ReadME
