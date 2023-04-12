@@ -1,8 +1,8 @@
 from train.train import RunTrain
 from networks.prepare_networks import get_nets
+from data.dataloaders import get_dataloaders
 import os
 
-# TODO Inference and testing
 # TODO inference and testing loop in main
 # TODO Label propagation network
 # TODO LP training
@@ -78,9 +78,12 @@ def train(config):
     losses_train_init_seg, losses_valid_init_seg, best_metric_seg, binary_seg_weight, \
     losses_train_init_class, losses_valid_init_class, best_metric_class = get_nets(config)
 
+    # Get dataloaders
+    train_loader, val_loader, test_ds, test_files = get_dataloaders(config)
+
     # Set up Trainer class
-    runtrain = RunTrain(train_loader=None,
-                        val_loader=None,
+    runtrain = RunTrain(train_loader=train_loader,
+                        val_loader=val_loader,
                         max_iterations=config['max_iterations'],
                         ckpt_dir=config['ckpt_dir'],
                         res_dir=config['res_dir'],
@@ -112,6 +115,12 @@ def train(config):
                                   best_metrics_valid_class=best_metric_class,
                                   multi_task_weight=config['multi_task_weight']
                                   )
+
+
+    # Run testing
+    runtrain.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
+
+    # Run inference
 
 
 if __name__ == '__main__':
