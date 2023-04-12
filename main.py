@@ -122,7 +122,7 @@ def run_experiment(config):
 
     # Run inference
     if config['inference']:
-        runtrain.infer(model=segmenter, test_files=test_files, test_ds=test_ds, model=segmenter, classifier=classifier)
+        runtrain.infer(model=segmenter, test_files=test_files, test_ds=test_ds, classifier=classifier)
 
 
 if __name__ == '__main__':
