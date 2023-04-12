@@ -83,6 +83,8 @@ def get_dataloaders(config):
     datalist = load_decathlon_datalist(datasets, True, "training")
     val_files = load_decathlon_datalist(datasets, True, "validation")
     test_files = load_decathlon_datalist(datasets, True, "testing")
+    infer_ds = None
+    infer_files = None
     if config['infer']:
         infer_files = load_decathlon_datalist(datasets, True, "inference")
         infer_ds = CacheDataset(
@@ -124,7 +126,5 @@ def get_dataloaders(config):
     val_loader = DataLoader(
         val_ds, batch_size=1, shuffle=True, num_workers=0,  # pin_memory=True
     )
-    if config['infer']:
-        return train_loader, val_loader, test_ds, test_files, infer_ds, infer_files
 
-    return train_loader, val_loader, test_ds, test_files
+    return train_loader, val_loader, test_ds, test_files, infer_ds, infer_files

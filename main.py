@@ -75,7 +75,7 @@ def run_experiment(config):
     losses_train_init_class, losses_valid_init_class, best_metric_class = get_nets(config)
 
     # Get dataloaders
-    train_loader, val_loader, test_ds, test_files = get_dataloaders(config)
+    train_loader, val_loader, test_ds, test_files, infer_ds, infer_files = get_dataloaders(config)
 
     # Train experiment
     if config['training']:
@@ -132,7 +132,7 @@ def run_experiment(config):
 
     # Run inference
     if config['inference']:
-        runtest.infer(model=segmenter, test_files=test_files, test_ds=test_ds, classifier=classifier)
+        runtest.infer(model=segmenter, test_files=infer_files, test_ds=infer_ds, classifier=classifier)
 
 
 if __name__ == '__main__':
