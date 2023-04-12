@@ -29,7 +29,7 @@ Any existing checkpoints in the directories specified in the config file will be
 Inference and testing is also supported for each network. 
 
 
-For segmentation, testing includes saving the .nii segmentation predictions in the specified results_dir folder, as well as a .csv file (seg_overlap_metrics.csv) containing similarity metrics to ground truth (GT) for each segmentation label. 
+For segmentation, testing includes saving the .nii.gz segmentation predictions in the specified results_dir folder, as well as a .csv file (seg_overlap_metrics.csv) containing similarity metrics to ground truth (GT) for each segmentation label. 
 For classification, testing saves the classification report in a .csv (classification_report.csv), alongside confusion matrices. 
 
 Inference is done for the multi-task framework, where for an input image the segmentation prediction is saved in res_dir, with the predicted condition (class_out) in the filename ("cnn-lab-" + class_out + "-" + original_filename.nii.gz). 
@@ -64,7 +64,7 @@ A config.yml file may be used to specify experiment parameters. This includes th
 
 ### Segmenter parameters
 - dropout_seg: segmenter dropout probability
-- lr_seg: segmenter initial learnign rate 
+- lr_seg: segmenter initial learning rate 
 - weight_decay_seg: weight decay of segmenter optimizer 
 - chann_segnet: tuple specifying output channels for each network layer, e.g. (32, 64, 128, 256, 512)
 - strides_segnet: tuple specifying output channels for each network layer, (2, 2, 2, 2)
