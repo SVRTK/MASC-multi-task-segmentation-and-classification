@@ -1,8 +1,8 @@
 # Directories and filenames
 ckpt_dir: ./media/prg20/DATA/PaulaData/Using_all_diagnosis/final_framework/excludingCardiacChambers/test_pipeline/Checkpoints/
 res_dir: ./media/prg20/DATA/PaulaData/Using_all_diagnosis/final_framework/excludingCardiacChambers/test_pipeline/Results/
-data_dir: /Data/
-data_JSON_file: data.json
+data_dir: /media/prg20/DATA/PaulaData/Using_all_diagnosis/data/
+data_JSON_file: data_all_multi_nomasks_vess.json
 ckpt_name_seg: latest_segmenter
 ckpt_name_class: latest_classifier
 
@@ -13,9 +13,9 @@ training: True
 infer: True
 
 # Experiment parameters
-eval_num: 3
+eval_num: 1
 max_iterations: 100
-batch_size: 12
+batch_size: 4
 gpu_ids: 0
 
 # Classifier parameters
@@ -27,8 +27,8 @@ weight_decay_class: 1e-5
 dropout_seg: 0.2
 lr_seg: 1e-3
 weight_decay_seg: 1e-5
-chann_segnet: (32, 64, 128, 256, 512)
-strides_segnet: (2, 2, 2, 2)
+chann_segnet: [32,64,128,256,512]
+strides_segnet: [2,2,2,2]
 ksize_segnet: 3
 up_ksize_segnet: 3
 binary_seg_weight: 1

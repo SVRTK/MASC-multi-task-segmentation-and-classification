@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from tqdm import tqdm
-from monai import transforms
+from monai import transforms, metrics, data
 from train import train_utils as utils
 from train.train_utils import Trainer, cuda
 
@@ -60,7 +60,7 @@ class RunTrain(Trainer):
                                                                  segmenter=segmenter
                                                                  )
                 epoch += 1
-        elif self.experiment_type == "segmenter":
+        elif self.experiment_type == "segment":
             while epoch < max_epoch:
 
                 # Increase binary weight gradually
@@ -398,7 +398,7 @@ class RunTrain(Trainer):
         )
 
         post_label = transforms.AsDiscrete(to_onehot=2)
-        dice_metric = transforms.DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+        dice_metric = metrics.DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
         dice_vals = list()
 
         for batch in epoch_iterator_val:
@@ -415,13 +415,13 @@ class RunTrain(Trainer):
             binary_out = utils.add_softmax_labels(torch.softmax(logit_map, dim=1))
 
             # One-hot encode labels
-            val_labels_list = transforms.decollate_batch(mask)
+            val_labels_list = data.decollate_batch(mask)
             val_labels_convert = [
                 post_label(val_label_tensor) for val_label_tensor in val_labels_list
             ]
 
             # Argmax and one-hot encode preds
-            val_outputs_list = transforms.decollate_batch(binary_out)
+            val_outputs_list = data.decollate_batch(binary_out)
             val_output_convert = [
                 post_label(torch.argmax(val_pred_tensor, dim=0).unsqueeze(0))
                 for val_pred_tensor in val_outputs_list
@@ -668,7 +668,7 @@ class RunTrain(Trainer):
         )
 
         post_label = transforms.AsDiscrete(to_onehot=2)
-        dice_metric = transforms.DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+        dice_metric = metrics.DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
         dice_vals = list()
         num_correct = 0.0
         metric_count = 0
@@ -699,11 +699,11 @@ class RunTrain(Trainer):
 
             # Compute segmentation metrics
             binary_out = utils.add_softmax_labels(torch.softmax(logit_map, dim=1))
-            val_labels_list = transforms.decollate_batch(mask)
+            val_labels_list = data.decollate_batch(mask)
             val_labels_convert = [
                 post_label(val_label_tensor) for val_label_tensor in val_labels_list
             ]
-            val_outputs_list = transforms.decollate_batch(binary_out)
+            val_outputs_list = data.decollate_batch(binary_out)
             val_output_convert = [
                 post_label(torch.argmax(val_pred_tensor, dim=0).unsqueeze(0))
                 for val_pred_tensor in val_outputs_list
