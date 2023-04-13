@@ -2,6 +2,8 @@
 
 MASC is a Pytorch and MONAI (https://monai.io/) based multi-task framework for multi-class segmentation and classification. 
 
+(Work under development) 
+
 Our framework is suitable for datasets with distinct segmentation types (in our case, three aortic arch anomalies). The intent is to leverage valuable class-specific information learnt from the classifier, to improve the inter-class segmentation predictions, i.e. to enforce the segmenter to learn important topological segmentation network for each class. 
 Individual segmentation and classification training is also supported. 
 
