@@ -86,7 +86,7 @@ def run_experiment(config):
 	runtest.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
 
 	# Run inference
-	if config['inference']:
+	if config['infer']:
 		runtest.infer(model=segmenter, test_files=infer_files, test_ds=infer_ds, classifier=classifier)
 
 

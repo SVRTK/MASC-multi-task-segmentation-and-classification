@@ -321,15 +321,20 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load
 		ckpt = load_checkpoint(ckpt_path='{}{}.ckpt'.format(ckpt_dir, ckpt_name))
 		model.load_state_dict(ckpt['model'])
 		optimizer.load_state_dict(ckpt['optimizer'])
-		losses_train_init_class = ckpt['losses_train']
-		losses_valid_init_class = ckpt['losses_valid']
-		best_metric = ckpt['best_metric_valid']
-		iteration = ckpt['iteration']
-		epoch = ckpt['epoch']
-		binary_seg_weight = None
-
-		if load_wbin:
-			binary_seg_weight = ckpt['binary_seg_weight']
+		#losses_train_init_class = ckpt['losses_train']
+		#losses_valid_init_class = ckpt['losses_valid']
+		#best_metric = ckpt['best_metric_valid']
+		#iteration = ckpt['iteration']
+		#epoch = ckpt['epoch']
+		#binary_seg_weight = None
+		losses_train_init_class=[]
+		losses_valid_init_class=[]
+		best_metric=[]
+		iteration=100
+		epoch=50
+		binary_seg_weight=1
+		#if load_wbin:
+		#	binary_seg_weight = ckpt['binary_seg_weight']
 
 		if lr_scheduler:
 			lr_scheduler.load_state_dict(ckpt['lr_scheduler'])

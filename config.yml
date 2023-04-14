@@ -3,18 +3,18 @@ ckpt_dir: ./media/prg20/DATA/PaulaData/Using_all_diagnosis/final_framework/exclu
 res_dir: ./media/prg20/DATA/PaulaData/Using_all_diagnosis/final_framework/excludingCardiacChambers/test_pipeline/Results/
 data_dir: /media/prg20/DATA/PaulaData/Using_all_diagnosis/data/
 data_JSON_file: data_all_multi_nomasks_vess.json
-ckpt_name_seg: latest_segmenter
+ckpt_name_seg: latest_segmenter1
 ckpt_name_class: latest_classifier
 
 # Experiment types
 experiment_type: joint 
 input_type_class: multi
-training: True
+training: False 
 infer: True
 
 # Experiment parameters
 eval_num: 1
-max_iterations: 100
+max_iterations: 1000
 batch_size: 4
 gpu_ids: 0
 
@@ -31,7 +31,7 @@ chann_segnet: [32,64,128,256,512]
 strides_segnet: [2,2,2,2]
 ksize_segnet: 3
 up_ksize_segnet: 3
-binary_seg_weight: 1 
+binary_seg_weight: 0 
 multi_seg_weight: 1
 multi_task_weight: 14
 

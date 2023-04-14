@@ -28,7 +28,7 @@ class RunTest(Trainer):
 					segmenter: segmentation network (pytorch model)
 				Returns torch tensor to be used as input to classifier
 			"""
-			if self.input_type_class == "img" or not segmenter:
+			if self.input_type_class == "img":
 				class_in = img
 			elif self.input_type_class == "multi":
 				class_in = torch.softmax(segmenter(img), dim=1)
@@ -48,10 +48,10 @@ class RunTest(Trainer):
 				classifier: classifier model to be tested (pytorch model)
 
 		"""
-		if self.experiment_type == "segment" or "joint":
+		if self.experiment_type == "segment" or self.experiment_type=="joint":
 			self.test_segmenter(model=segmenter, test_files=test_files, test_ds=test_ds)
-		if self.experiment_type == "classify" or "joint":
-			self.test_classifier(model=classifier, test_files=test_files, test_ds=test_ds)
+		if self.experiment_type == "classify" or self.experiment_type=="joint":
+			self.test_classifier(model=classifier, segmenter=segmenter, test_files=test_files, test_ds=test_ds)
 
 	def test_segmenter(self, model, test_files, test_ds):
 		""" Performs testing on segmenter, and saves metrics (csv) and segmentation predictions in res_dir
@@ -87,6 +87,7 @@ class RunTest(Trainer):
 
 				# Save the prediction
 				out_label = torch.argmax(val_outputs, dim=1).detach().cpu()[0, ...]
+
 				out_lab_nii = nib.Nifti1Image(out_label, img_tmp_info.affine, img_tmp_info.header)
 				nib.save(out_lab_nii, out_name)
 
@@ -128,7 +129,7 @@ class RunTest(Trainer):
 				# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
 
 				val_labels_multi = post_label(val_labels).unsqueeze(0)
-				val_outputs_multi = post_label(torch.argmax(val_outputs, dim=1).unsqueeze(0)).unsqueeze(0)
+				val_outputs_multi = post_label(torch.argmax(val_outputs, dim=1)).unsqueeze(0)
 
 				# Computing dice scores
 				dice_multi_unet = compute_meandice(val_outputs_multi, val_labels_multi, include_background=False)[0].cpu().numpy()
@@ -202,7 +203,6 @@ class RunTest(Trainer):
 			y_true.append(val_labels.item())
 
 			class_in = self.get_input_classifier(img=img, segmenter=segmenter)
-
 			with torch.no_grad():
 				logits = model(class_in)
 
@@ -297,7 +297,7 @@ class RunTest(Trainer):
 					with torch.no_grad():
 						logits = classifier(class_in)
 						class_out = logits.argmax(dim=1)
-						class_out = utils.convert_num_to_cond(val_outputs.item())
+						class_out = utils.convert_num_to_cond(class_out.item())
 
 				out_name = self.res_dir + "/cnn-lab-" + class_out + "-" + case_name
 				# Save the prediction
