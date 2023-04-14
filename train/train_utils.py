@@ -136,23 +136,6 @@ class Trainer:
 
 		return total_loss_seg, multi_loss, binary_loss
 
-	def get_input_classifier(self, img=None, segmenter=None):
-		""" Generates input tensor to classifier based on input_type_class parameter
-			Args:
-				img: original image tensor - default (torch tensor)
-				segmenter: segmentation network (pytorch model)
-			Returns torch tensor to be used as input to classifier
-		"""
-		if self.input_type_class == "img" or not segmenter:
-			class_in = img
-		elif self.input_type_class == "multi":
-			class_in = torch.softmax(segmenter(img), dim=1)
-		elif self.input_type_class == "binary":
-			class_in = torch.softmax(segmenter(img), dim=1)
-			class_in = add_softmax_labels(class_in)
-
-		return class_in
-
 
 def get_in_channels_class(config):
 	""" Returns the number of input channels for a given classifier experiment
@@ -334,24 +317,24 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load
 	"""
 
 	# Loading pretrained model
-	#try:
-	ckpt = load_checkpoint(ckpt_path='{}{}.ckpt'.format(ckpt_dir, ckpt_name))
-	model.load_state_dict(ckpt['model'])
-	optimizer.load_state_dict(ckpt['optimizer'])
-	losses_train_init_class = ckpt['losses_train']
-	losses_valid_init_class = ckpt['losses_valid']
-	best_metric = ckpt['best_metric_valid']
-	loss_val_best = ckpt['best_loss']
-	iteration = ckpt['iteration']
-	epoch = ckpt['epoch']
-	binary_seg_weight = None
+	try:
+		ckpt = load_checkpoint(ckpt_path='{}{}.ckpt'.format(ckpt_dir, ckpt_name))
+		model.load_state_dict(ckpt['model'])
+		optimizer.load_state_dict(ckpt['optimizer'])
+		losses_train_init_class = ckpt['losses_train']
+		losses_valid_init_class = ckpt['losses_valid']
+		best_metric = ckpt['best_metric_valid']
+		iteration = ckpt['iteration']
+		epoch = ckpt['epoch']
+		binary_seg_weight = None
 
-	if load_wbin:
-		binary_seg_weight = ckpt['binary_seg_weight']
+		if load_wbin:
+			binary_seg_weight = ckpt['binary_seg_weight']
 
-	if lr_scheduler:
-		lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
-	"""except:
+		if lr_scheduler:
+			lr_scheduler.load_state_dict(ckpt['lr_scheduler'])
+	
+	except:
 			print("Starting training from scratch")
 			losses_train_init_class = []
 			losses_valid_init_class = []
@@ -360,8 +343,8 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load
 			iteration = 0
 			epoch = 0
 			binary_seg_weight = None
-	"""
-	return losses_train_init_class, losses_valid_init_class, best_metric, loss_val_best, iteration, epoch, binary_seg_weight
+	
+	return losses_train_init_class, losses_valid_init_class, best_metric,  iteration, epoch, binary_seg_weight
 
 
 class LambdaLR():

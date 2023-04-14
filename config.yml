@@ -7,7 +7,7 @@ ckpt_name_seg: latest_segmenter
 ckpt_name_class: latest_classifier
 
 # Experiment types
-experiment_type: segment
+experiment_type: joint 
 input_type_class: multi
 training: True
 infer: True
@@ -31,7 +31,7 @@ chann_segnet: [32,64,128,256,512]
 strides_segnet: [2,2,2,2]
 ksize_segnet: 3
 up_ksize_segnet: 3
-binary_seg_weight: 1
+binary_seg_weight: 1 
 multi_seg_weight: 1
 multi_task_weight: 14
 
