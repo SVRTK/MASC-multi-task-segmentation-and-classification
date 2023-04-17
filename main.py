@@ -10,9 +10,9 @@ import torch
 
 def run_experiment(config):
     """ Runs training from config file
-		Args:
-			config: dictionary (main config file) with experiment parameter info (dict)
-	"""
+    Args:
+        config: dictionary (main config file) with experiment parameter info (dict)
+    """
     # Make checkpoint and results dir
     if not os.path.isdir(config['ckpt_dir']):
         os.makedirs(config['ckpt_dir'])
@@ -33,7 +33,7 @@ def run_experiment(config):
     train_loader, val_loader, test_ds, test_files, infer_ds, infer_files = get_dataloaders(config)
 
     # Train experiment
-    if config['training'] == True:
+    if config['training'] is True:
         # Set up Trainer class
         runtrain = RunTrain(
             train_loader=train_loader,
