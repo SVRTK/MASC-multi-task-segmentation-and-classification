@@ -16,37 +16,38 @@ import matplotlib.pyplot as plt
 # Testing loop
 class RunTest(Trainer):
     """ Testing class with access to all testing and inference loops
-		for both segmentation and classification networks
+    for both segmentation and classification networks
 
-		Inherits from utils Trainer class
-	"""
+    Inherits from utils Trainer class
+    """
 
     def get_input_classifier(self, img=None, segmenter=None):
         """ Generates input tensor to classifier based on input_type_class parameter
-				Args:
-					img: original image tensor - default (torch tensor)
-					segmenter: segmentation network (pytorch model)
-				Returns torch tensor to be used as input to classifier
-			"""
+        Args:
+            img: original image tensor - default (torch tensor)
+            segmenter: segmentation network (pytorch model)
+            Returns torch tensor to be used as input to classifier
+        """
+
         if self.input_type_class == "img":
             class_in = img
         elif self.input_type_class == "multi":
             class_in = torch.softmax(segmenter(img), dim=1)
         elif self.input_type_class == "binary":
             class_in = torch.softmax(segmenter(img), dim=1)
-            class_in = add_softmax_labels(class_in)
+            class_in = utils.add_softmax_labels(class_in)
 
         return class_in
 
     def test_experiment(self, test_files, test_ds, segmenter=None, classifier=None):
         """ Runs testing depending on experiment type (classifier, or segmenter, or both)
-			Args:
-				test_files: decathlon datalist test files (decathlon datalist)
-				test_ds: pytorch dataset containing test files (pytorch Dataset)
-				segmenter: segmenter model to be tested (pytorch model)
-				classifier: classifier model to be tested (pytorch model)
+        Args:
+            test_files: decathlon datalist test files (decathlon datalist)
+            test_ds: pytorch dataset containing test files (pytorch Dataset)
+            segmenter: segmenter model to be tested (pytorch model)
+            classifier: classifier model to be tested (pytorch model)
+        """
 
-		"""
         if self.experiment_type == "segment" or self.experiment_type == "joint":
             self.test_segmenter(model=segmenter, test_files=test_files, test_ds=test_ds)
         if self.experiment_type == "classify" or self.experiment_type == "joint":
@@ -54,11 +55,11 @@ class RunTest(Trainer):
 
     def test_segmenter(self, model, test_files, test_ds):
         """ Performs testing on segmenter, and saves metrics (csv) and segmentation predictions in res_dir
-			Args:
-				model: segmenter model to be tested (pytorch model)
-				test_files: decathlon datalist test files (decathlon datalist)
-				test_ds: pytorch dataset containing test files (pytorch Dataset)
-		"""
+        Args:
+            model: segmenter model to be tested (pytorch model)
+            test_files: decathlon datalist test files (decathlon datalist)
+            test_ds: pytorch dataset containing test files (pytorch Dataset)
+        """
 
         model.eval()
         post_label = transforms.AsDiscrete(to_onehot=self.N_seg_labels)
@@ -125,14 +126,10 @@ class RunTest(Trainer):
                 metrics_all.extend([i for i in specificity_ROI])
                 metrics_all.extend([i for i in precision_ROI])
 
-                # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
-                #						  Multi-class metrics					   #
-                # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#
-
+                # Multi-class metrics
                 val_labels_multi = post_label(val_labels).unsqueeze(0)
                 val_outputs_multi = post_label(torch.argmax(val_outputs, dim=1)).unsqueeze(0)
 
-                # Computing dice scores
                 dice_multi_unet = compute_meandice(val_outputs_multi, val_labels_multi, include_background=False)[
                     0].cpu().numpy()
 
@@ -188,12 +185,12 @@ class RunTest(Trainer):
 
     def test_classifier(self, model, test_files, test_ds, segmenter=None):
         """ Performs testing on classifier. Metrics are saved in a csv in res_dir
-			Args:
-				model: classifier model for testings (pytorch model)
-				test_files: decathlon datalist testing files (decathlon datalist)
-				test_ds: pytorch dataset containing testing files (pytorch Dataset)
-				segmenter: segmenter model to use for input to classifier (pytorch model)
-		"""
+        Args:
+            model: classifier model for testings (pytorch model)
+            test_files: decathlon datalist testing files (decathlon datalist)
+            test_ds: pytorch dataset containing testing files (pytorch Dataset)
+            segmenter: segmenter model to use for input to classifier (pytorch model)
+        """
 
         model.eval()
         y_true, y_preds, y_preds_softmax = [], [], []
@@ -225,8 +222,13 @@ class RunTest(Trainer):
         labels = ["CoA", "RAA", "DAA"]
 
         # Generate classification metrics report and save
-        all_metrics_report = classification_report(y_true, y_preds, target_names=labels, sample_weight=None,
-                                                   output_dict=True)
+        all_metrics_report = classification_report(
+            y_true,
+            y_preds,
+            target_names=labels,
+            sample_weight=None,
+            output_dict=True
+        )
         print(all_metrics_report)
         # open file for writing, "w" is writing
         w = csv.writer(open(self.res_dir + "classification_report.csv", "w"))
@@ -268,16 +270,15 @@ class RunTest(Trainer):
 
     def infer(self, model, test_files, test_ds, classifier=None):
         """ Performs inference on segmenter and classifier.
-			Segmentation predictions are saved in res_dir, with predicted label in the filename
-			Args:
-				model: segmenter model for inference (pytorch model)
-				test_files: decathlon datalist inference files (decathlon datalist)
-				test_ds: pytorch dataset containing inference files (pytorch Dataset)
-				classifier: classifier model (pytorch model)
-		"""
+        Segmentation predictions are saved in res_dir, with predicted label in the filename
+        Args:
+            model: segmenter model for inference (pytorch model)
+            test_files: decathlon datalist inference files (decathlon datalist)
+            test_ds: pytorch dataset containing inference files (pytorch Dataset)
+            classifier: classifier model (pytorch model)
+        """
 
         model.eval()
-        post_label = transforms.AsDiscrete(to_onehot=self.N_seg_labels)
 
         for x in range(len(test_files)):
 

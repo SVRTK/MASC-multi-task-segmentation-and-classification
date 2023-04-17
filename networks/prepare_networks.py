@@ -12,9 +12,9 @@ def get_nets(config):
             classifier, classifier optimizer and LR scheduler
             iteration, epoch, maximum epoch,
             segmentation training and validation losses list of dicts,
-            best segmentation dice, latest binary segmentation loss weight,
+            the best segmentation dice, the latest binary segmentation loss weight,
             classifier training and validation losses list of dicts,
-            best classifier accuracy
+            the best classifier accuracy
     """
 
     # Define empty networks
