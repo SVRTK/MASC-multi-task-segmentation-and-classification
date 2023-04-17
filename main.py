@@ -23,13 +23,11 @@ def run_experiment(config):
     torch.multiprocessing.set_sharing_strategy('file_system')
 
     # Define networks, optimizers and load any existing checkpoints, prepare lists to store losses
-    (
-        segmenter, optimizer_seg, lr_scheduler_seg,
-        classifier, optimizer_class, lr_scheduler_class,
-        iteration, epoch, max_epoch,
-        losses_train_init_seg, losses_valid_init_seg, best_metric_seg, binary_seg_weight,
-        losses_train_init_class, losses_valid_init_class, best_metric_class
-    ) = get_nets(config)
+    (segmenter, optimizer_seg, lr_scheduler_seg,
+     classifier, optimizer_class, lr_scheduler_class,
+     iteration, epoch, max_epoch,
+     losses_train_init_seg, losses_valid_init_seg, best_metric_seg, binary_seg_weight,
+     losses_train_init_class, losses_valid_init_class, best_metric_class) = get_nets(config)
 
     # Get dataloaders
     train_loader, val_loader, test_ds, test_files, infer_ds, infer_files = get_dataloaders(config)
@@ -37,53 +35,56 @@ def run_experiment(config):
     # Train experiment
     if config['training'] == True:
         # Set up Trainer class
-        runtrain = RunTrain(train_loader=train_loader,
-                            val_loader=val_loader,
-                            max_iterations=int(config['max_iterations']),
-                            ckpt_dir=config['ckpt_dir'],
-                            res_dir=config['res_dir'],
-                            experiment_type=config['experiment_type'],
-                            optimizer_seg=optimizer_seg,
-                            optimizer_class=optimizer_class,
-                            lr_scheduler_seg=lr_scheduler_seg,
-                            lr_scheduler_class=lr_scheduler_class,
-                            input_type_class=config['input_type_class'],
-                            eval_num=int(config['eval_num']),
-                            gpu_device=config['gpu_ids'],
-                            N_seg_labels=int(config['N_seg_labels'])
-                            )
-        runtrain.train_experiment(iteration,
-                                  max_epoch,
-                                  epoch,
-                                  segmenter=segmenter,
-                                  losses_train_seg=losses_train_init_seg,
-                                  losses_valid_seg=losses_valid_init_seg,
-                                  best_metrics_valid_seg=best_metric_seg,
-                                  binary_seg_weight=binary_seg_weight,
-                                  multi_seg_weight=float(config['multi_seg_weight']),
-                                  classifier=classifier,
-                                  losses_train_class=losses_train_init_class,
-                                  losses_valid_class=losses_valid_init_class,
-                                  best_metrics_valid_class=best_metric_class,
-                                  multi_task_weight=float(config['multi_task_weight'])
-                                  )
+        runtrain = RunTrain(
+            train_loader=train_loader,
+            val_loader=val_loader,
+            max_iterations=int(config['max_iterations']),
+            ckpt_dir=config['ckpt_dir'],
+            res_dir=config['res_dir'],
+            experiment_type=config['experiment_type'],
+            optimizer_seg=optimizer_seg,
+            optimizer_class=optimizer_class,
+            lr_scheduler_seg=lr_scheduler_seg,
+            lr_scheduler_class=lr_scheduler_class,
+            input_type_class=config['input_type_class'],
+            eval_num=int(config['eval_num']),
+            gpu_device=config['gpu_ids'],
+            N_seg_labels=int(config['N_seg_labels'])
+        )
+        runtrain.train_experiment(
+            iteration,
+            max_epoch,
+            epoch,
+            segmenter=segmenter,
+            losses_train_seg=losses_train_init_seg,
+            losses_valid_seg=losses_valid_init_seg,
+            best_metrics_valid_seg=best_metric_seg,
+            binary_seg_weight=binary_seg_weight,
+            multi_seg_weight=float(config['multi_seg_weight']),
+            classifier=classifier,
+            losses_train_class=losses_train_init_class,
+            losses_valid_class=losses_valid_init_class,
+            best_metrics_valid_class=best_metric_class,
+            multi_task_weight=float(config['multi_task_weight'])
+        )
 
     # Run testing
-    runtest = RunTest(train_loader=train_loader,
-                      val_loader=val_loader,
-                      max_iterations=int(config['max_iterations']),
-                      ckpt_dir=config['ckpt_dir'],
-                      res_dir=config['res_dir'],
-                      experiment_type=config['experiment_type'],
-                      optimizer_seg=optimizer_seg,
-                      optimizer_class=optimizer_class,
-                      lr_scheduler_seg=lr_scheduler_seg,
-                      lr_scheduler_class=lr_scheduler_class,
-                      input_type_class=config['input_type_class'],
-                      eval_num=int(config['eval_num']),
-                      gpu_device=config['gpu_ids'],
-                      N_seg_labels=int(config['N_seg_labels'])
-                      )
+    runtest = RunTest(
+        train_loader=train_loader,
+        val_loader=val_loader,
+        max_iterations=int(config['max_iterations']),
+        ckpt_dir=config['ckpt_dir'],
+        res_dir=config['res_dir'],
+        experiment_type=config['experiment_type'],
+        optimizer_seg=optimizer_seg,
+        optimizer_class=optimizer_class,
+        lr_scheduler_seg=lr_scheduler_seg,
+        lr_scheduler_class=lr_scheduler_class,
+        input_type_class=config['input_type_class'],
+        eval_num=int(config['eval_num']),
+        gpu_device=config['gpu_ids'],
+        N_seg_labels=int(config['N_seg_labels'])
+    )
 
     runtest.test_experiment(test_files=test_files, test_ds=test_ds, segmenter=segmenter, classifier=classifier)
 
