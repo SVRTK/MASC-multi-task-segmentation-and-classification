@@ -120,11 +120,19 @@ def get_dataloaders(config):
     sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 
     train_loader = DataLoader(
-        train_ds, batch_size=config['batch_size'], shuffle=False, sampler=sampler, num_workers=4, pin_memory=False  # True
+        train_ds,
+        batch_size=config['batch_size'],
+        shuffle=False,
+        sampler=sampler,
+        num_workers=4,
+        pin_memory=False  # True
     )
 
     val_loader = DataLoader(
-        val_ds, batch_size=1, shuffle=True, num_workers=0,  # pin_memory=True
+        val_ds,
+        batch_size=1,
+        shuffle=True,
+        num_workers=0,
     )
 
     return train_loader, val_loader, test_ds, test_files, infer_ds, infer_files
