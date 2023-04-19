@@ -328,7 +328,8 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load
         optimizer.load_state_dict(ckpt['optimizer'])
         losses_train_init_class = ckpt['losses_train']
         losses_valid_init_class = ckpt['losses_valid']
-        best_metric = ckpt['best_metric_valid']
+        #best_metric = ckpt['best_metric_valid']
+        best_metric = 100
         iteration = ckpt['iteration']
         epoch = ckpt['epoch']
         binary_seg_weight = None
@@ -347,6 +348,7 @@ def try_load_ckpt(ckpt_dir, ckpt_name, model, optimizer, lr_scheduler=None, load
         iteration = 0
         epoch = 0
         binary_seg_weight = None
+     
 
     return losses_train_init_class, losses_valid_init_class, best_metric, iteration, epoch, binary_seg_weight
 

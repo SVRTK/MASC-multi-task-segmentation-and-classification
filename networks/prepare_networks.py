@@ -59,7 +59,7 @@ def get_nets(config):
             optimizer=optimizer_seg,
             lr_lambda=train_utils.LambdaLR(max_epoch, 0, 1).step
         )
-
+        print("lr scheduler", lr_scheduler_seg)
         # Check if model has been pretrained, and load weights and losses
         (
             losses_train_init_seg, losses_valid_init_seg,
@@ -69,7 +69,7 @@ def get_nets(config):
                                       segmenter,
                                       optimizer_seg,
                                       lr_scheduler=lr_scheduler_seg,
-                                      load_wbin=True)
+                                      load_wbin=False)
         if not binary_seg_weight:
             binary_seg_weight = config['binary_seg_weight']
 
@@ -79,7 +79,8 @@ def get_nets(config):
             spatial_dims=int(config['spatial_dims']),
             in_channels=in_channels_class,
             out_channels=int(config['N_diagnosis']),
-            dropout_prob=float(config['dropout_class'])
+            dropout_prob=float(config['dropout_class']), 
+            norm = 'INSTANCE'
         ))
 
         classifier = train_utils.init_network(classifier, [config['gpu_ids']])
