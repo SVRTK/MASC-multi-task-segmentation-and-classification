@@ -169,7 +169,7 @@ In case you found SVRTK Fetal MRI Segmentation useful please give appropriate cr
 SVRTK toolbox for fetal cardiac MRI segmentation and classification: https://github.com/SVRTK/MASC-multi-task-segmentation-and-classification/.
 
 This is an extension of our workshop paper: 
-Ramirez Gilliland, Paula, et al. "Automated Multi-class Fetal Cardiac Vessel Segmentation in Aortic Arch Anomalies Using T2-Weighted 3D Fetal MRI." Perinatal, Preterm and Paediatric Image Analysis: 7th International Workshop, PIPPI 2022, Held in Conjunction with MICCAI 2022, Singapore, September 18, 2022, Proceedings. Cham: Springer Nature Switzerland, 2022.
+Ramirez Gilliland, P., Uus, A., van Poppel, M.P., Grigorescu, I., Steinweg, J.K., Lloyd, D.F., Pushparajah, K., King, A.P. and Deprez, M., 2022, September. Automated Multi-class Fetal Cardiac Vessel Segmentation in Aortic Arch Anomalies Using T2-Weighted 3D Fetal MRI. _In Perinatal, Preterm and Paediatric Image Analysis: 7th International Workshop, PIPPI 2022, Held in Conjunction with MICCAI 2022, Singapore, September 18, 2022, Proceedings (pp. 82-93). Cham: Springer Nature Switzerland.
 
 The full paper version is submitted and will be added soon.
 
