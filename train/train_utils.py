@@ -142,7 +142,7 @@ def get_in_channels_class(config):
     Returns:
         number of input classifier channels (int)
     """
-    if config['input_type_class'] == 'vol':
+    if config['input_type_class'] == 'img':
         in_channels = 1
     else:
         in_channels = config['N_seg_labels']
